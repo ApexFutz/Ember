@@ -10,6 +10,7 @@ import RecruiterRoles from './pages/recruiter/Roles.tsx'
 import NewRole from './pages/recruiter/NewRole.tsx'
 import Ruleset from './pages/recruiter/Ruleset.tsx'
 import CandidateRoles from './pages/candidate/Roles'
+import Assessment from './pages/assessment/Assessment.tsx'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -23,7 +24,7 @@ function ProtectedRoute({ children, requiredRole }: {
     return <Navigate to="/login" replace />
   }
 
-  return children
+  return <>{children}</>
 }
 
 function AppRoutes() {
@@ -33,10 +34,17 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
-      {/* Recruiter routes — wrapped in Layout */}
+      {/* Assessment — fullscreen, completely standalone */}
+      <Route path="/assessment/:roleId" element={
+        <ProtectedRoute requiredRole="candidate">
+          <Assessment />
+        </ProtectedRoute>
+      } />
+
+      {/* Recruiter routes */}
       <Route path="/recruiter" element={
         <ProtectedRoute requiredRole="recruiter">
-        <Layout />
+          <Layout />
         </ProtectedRoute>
       }>
         <Route path="dashboard" element={<div>Recruiter Dashboard coming soon</div>} />
@@ -47,7 +55,7 @@ function AppRoutes() {
         <Route path="profile" element={<RecruiterProfile />} />
       </Route>
 
-      {/* Candidate routes — wrapped in Layout */}
+      {/* Candidate routes */}
       <Route path="/candidate" element={
         <ProtectedRoute requiredRole="candidate">
           <Layout />
