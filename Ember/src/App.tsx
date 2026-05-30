@@ -11,6 +11,7 @@ import NewRole from './pages/recruiter/NewRole.tsx'
 import Ruleset from './pages/recruiter/Ruleset.tsx'
 import CandidateRoles from './pages/candidate/Roles'
 import Assessment from './pages/assessment/Assessment.tsx'
+import RecruiterDashboard from './pages/recruiter/Dashboard.tsx'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -47,7 +48,7 @@ function AppRoutes() {
           <Layout />
         </ProtectedRoute>
       }>
-        <Route path="dashboard" element={<div>Recruiter Dashboard coming soon</div>} />
+        <Route path="dashboard" element={<RecruiterDashboard />} />
         <Route path="roles" element={<RecruiterRoles />} />
         <Route path="roles/new" element={<NewRole />} />
         <Route path="roles/:id/ruleset" element={<Ruleset />} />
