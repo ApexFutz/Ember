@@ -19,19 +19,19 @@ export default function SkeletonCard() {
 
 const styles: Record<string, React.CSSProperties> = {
   card: {
-    background: '#fff',
-    border: '1px solid #ddd6cc',
-    borderRadius: '4px',
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border-light)',
+    borderRadius: 'var(--radius-lg)',
     padding: '24px',
     marginBottom: '16px',
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
   },
-    line: {
+  line: {
     height: '12px',
-    backgroundColor: '#ddd6cc',
-    borderRadius: '3px',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    borderRadius: 'var(--radius-sm)',
     animation: 'shimmer 1.5s ease-in-out infinite',
   },
 }

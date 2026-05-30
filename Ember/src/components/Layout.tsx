@@ -97,10 +97,21 @@ export default function Layout() {
             <NavLink
               key={item.path}
               to={item.path}
-              style={({ isActive }) =>
-                isActive ? { ...styles.navItem, ...styles.navItemActive }
-                         : styles.navItem
-              }
+              style={({ isActive }) => ({
+                ...styles.navItem,
+                ...(isActive ? styles.navItemActive : {}),
+              })}
+              onMouseEnter={(e) => {
+                if (!(e.currentTarget as HTMLElement).style.boxShadow?.includes('primary')) {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-bg-hover)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLElement
+                if (!el.style.boxShadow?.includes('primary')) {
+                  el.style.backgroundColor = 'transparent'
+                }
+              }}
             >
               <span>{item.label}</span>
               {item.label === 'Messages' && unreadCount > 0 && (
@@ -141,16 +152,16 @@ const styles: Record<string, React.CSSProperties> = {
   shell: {
     display: 'flex',
     minHeight: '100vh',
-    backgroundColor: '#f7f3ee',
-    fontFamily: 'system-ui, sans-serif',
+    backgroundColor: 'var(--color-bg-primary)',
   },
   sidebar: {
-    width: '220px',
+    width: '256px',
     height: '100vh',
-    backgroundColor: '#1a1714',
+    backgroundColor: 'var(--color-bg-secondary)',
+    borderRight: '1px solid var(--color-border-light)',
     display: 'flex',
     flexDirection: 'column',
-    paddingTop: '28px',
+    paddingTop: '32px',
     paddingBottom: '24px',
     paddingLeft: '0',
     paddingRight: '0',
@@ -162,109 +173,119 @@ const styles: Record<string, React.CSSProperties> = {
   },
   logo: {
     padding: '0 24px',
-    marginBottom: '8px',
+    marginBottom: '12px',
   },
   logoText: {
-    fontSize: '22px',
-    fontWeight: '500',
-    color: '#fff',
+    fontSize: '24px',
+    fontWeight: '700',
+    color: 'var(--color-text-primary)',
     letterSpacing: '-0.02em',
+    fontFamily: 'var(--font-display)',
   },
   logoDot: {
-    fontSize: '22px',
-    color: '#c8943a',
+    fontSize: '24px',
+    color: 'var(--color-primary)',
+    fontFamily: 'var(--font-display)',
   },
   roleBadge: {
-    margin: '0 24px 28px',
+    margin: '0 24px 32px',
     fontSize: '11px',
-    color: '#8a837a',
-    letterSpacing: '0.08em',
+    color: 'var(--color-text-tertiary)',
+    letterSpacing: '0.1em',
     textTransform: 'uppercase',
+    fontWeight: '600',
   },
   nav: {
     display: 'flex',
     flexDirection: 'column',
     flex: 1,
-    gap: '2px',
+    gap: '4px',
     padding: '0 12px',
   },
   navItem: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '9px 12px',
-    borderRadius: '3px',
+    padding: '11px 14px',
+    borderRadius: 'var(--radius-md)',
     fontSize: '14px',
-    color: '#8a837a',
+    fontWeight: '500',
+    color: 'var(--color-text-secondary)',
     textDecoration: 'none',
-    transition: 'background 0.15s, color 0.15s',
+    transition: 'all var(--transition-fast)',
+    cursor: 'pointer',
   },
   navItemActive: {
-    backgroundColor: '#2a2420',
-    color: '#fff',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    color: 'var(--color-text-primary)',
+    boxShadow: 'inset 0 0 0 1px var(--color-primary)',
   },
   badge: {
-    backgroundColor: '#c8943a',
+    backgroundColor: 'var(--color-primary)',
     color: '#fff',
     fontSize: '11px',
-    fontWeight: '500',
-    padding: '2px 7px',
+    fontWeight: '600',
+    padding: '3px 9px',
     borderRadius: '999px',
   },
-  
   main: {
-    marginLeft: '220px',
+    marginLeft: '256px',
     flex: 1,
-    padding: '40px',
+    padding: '48px 56px',
     minHeight: '100vh',
   },
   sidebarBottom: {
-    padding: '16px 12px 0',
-    borderTop: '1px solid #2a2420',
+    padding: '20px 12px 0',
+    borderTop: '1px solid var(--color-border-light)',
     marginTop: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '12px',
   },
   userRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    padding: '4px 8px',
-    borderRadius: '3px',
-    backgroundColor: '#2a2420',
+    gap: '12px',
+    padding: '10px 12px',
+    borderRadius: 'var(--radius-md)',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    border: '1px solid var(--color-border-light)',
+    transition: 'all var(--transition-fast)',
   },
   avatar: {
-    width: '30px',
-    height: '30px',
+    width: '36px',
+    height: '36px',
     borderRadius: '50%',
-    backgroundColor: '#c8943a',
+    background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
     color: '#fff',
-    fontSize: '13px',
-    fontWeight: '500',
+    fontSize: '14px',
+    fontWeight: '600',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    fontFamily: 'var(--font-display)',
   },
   userName: {
-    fontSize: '13px',
-    color: '#fff',
+    fontSize: '14px',
+    color: 'var(--color-text-primary)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    fontWeight: '400',
+    fontWeight: '500',
   },
   logoutBtn: {
     width: '100%',
-    padding: '8px 12px',
+    padding: '10px 14px',
     background: 'transparent',
-    border: '1px solid #2a2420',
-    borderRadius: '3px',
-    color: '#8a837a',
-    fontSize: '12px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--color-text-secondary)',
+    fontSize: '13px',
+    fontWeight: '500',
     cursor: 'pointer',
     textAlign: 'center',
-    letterSpacing: '0.04em',
+    letterSpacing: '0.02em',
+    transition: 'all var(--transition-fast)',
   },
 }

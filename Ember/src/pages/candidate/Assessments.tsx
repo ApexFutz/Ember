@@ -16,10 +16,10 @@ interface MyAssessment {
 }
 
 const statusConfig: Record<SubmissionStatus, { label: string; color: string; bg: string }> = {
-  pending_review: { label: 'Pending review', color: '#b45309', bg: '#fef3c7' },
-  reviewed: { label: 'Reviewed', color: '#1e40af', bg: '#dbeafe' },
-  moved_forward: { label: 'Moved forward', color: '#2d6a4f', bg: '#d8f3dc' },
-  passed: { label: 'Not selected', color: '#6b7280', bg: '#f3f4f6' },
+  pending_review: { label: 'Pending review', color: '#fbbf24', bg: 'rgba(245, 158, 11, 0.15)' },
+  reviewed: { label: 'Reviewed', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
+  moved_forward: { label: 'Moved forward', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+  passed: { label: 'Not selected', color: 'var(--color-text-secondary)', bg: 'rgba(99, 102, 241, 0.1)' },
 }
 
 function formatDate(dateStr: string) {
@@ -105,26 +105,28 @@ export default function CandidateAssessments() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: { maxWidth: '860px' },
-  header: { marginBottom: '28px' },
-  title: { fontSize: '24px', fontWeight: '500', color: '#1a1714', margin: '0 0 4px' },
-  subtitle: { fontSize: '14px', color: '#8a837a', margin: 0 },
+  page: { maxWidth: '900px' },
+  header: { marginBottom: '32px' },
+  title: { fontSize: '28px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)' },
+  subtitle: { fontSize: '14px', color: 'var(--color-text-secondary)', margin: 0 },
   list: { display: 'flex', flexDirection: 'column', gap: '12px' },
   card: {
-    background: '#fff',
-    border: '1px solid #ddd6cc',
-    borderRadius: '4px',
-    padding: '20px',
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border-light)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '20px 24px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    transition: 'all var(--transition-base)',
+    boxShadow: 'var(--shadow-sm)',
   },
-  roleTitle: { fontSize: '15px', fontWeight: '500', color: '#1a1714', margin: '0 0 4px' },
-  date: { fontSize: '13px', color: '#8a837a', margin: 0 },
+  roleTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 6px' },
+  date: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 },
   statusBadge: {
     fontSize: '12px',
-    fontWeight: '500',
-    padding: '4px 12px',
-    borderRadius: '2px',
+    fontWeight: '600',
+    padding: '5px 12px',
+    borderRadius: 'var(--radius-sm)',
   },
 }

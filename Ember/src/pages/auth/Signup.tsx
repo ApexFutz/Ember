@@ -36,7 +36,6 @@ export default function Signup() {
       return
     }
 
-    // Update full_name on the auto-created profile
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       await supabase
@@ -56,83 +55,109 @@ export default function Signup() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Create your account</h1>
-        <p style={styles.subtitle}>Start building your verified profile</p>
+      <div style={styles.content}>
+        <div style={styles.header}>
+          <div style={styles.logo}>
+            <span style={styles.logoText}>Ember</span>
+            <span style={styles.logoDot}>.</span>
+          </div>
+          <h2 style={styles.tagline}>Recruitment made simple</h2>
+        </div>
 
-        {error && <div style={styles.error}>{error}</div>}
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <h1 style={styles.title}>Create your account</h1>
+            <p style={styles.subtitle}>Start your professional journey</p>
+          </div>
 
-        <form onSubmit={handleSignup} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>I am a</label>
-            <div style={styles.toggle}>
-              <button
-                type="button"
-                onClick={() => setRole('candidate')}
-                style={role === 'candidate' ? styles.toggleActive : styles.toggleInactive}
-              >
-                Candidate
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('recruiter')}
-                style={role === 'recruiter' ? styles.toggleActive : styles.toggleInactive}
-              >
-                Recruiter
-              </button>
+          {error && (
+            <div style={styles.error}>
+              <div style={styles.errorIcon}>⚠</div>
+              <div>{error}</div>
             </div>
-          </div>
+          )}
 
-          <div style={styles.field}>
-            <label style={styles.label}>Full name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={e => setFullName(e.target.value)}
-              placeholder="Your full name"
-              required
-              style={styles.input}
-            />
-          </div>
+          <form onSubmit={handleSignup} style={styles.form}>
+            <div style={styles.field}>
+              <label style={styles.label}>I am a</label>
+              <div style={styles.toggle}>
+                <button
+                  type="button"
+                  onClick={() => setRole('candidate')}
+                  style={role === 'candidate' ? styles.toggleActive : styles.toggleInactive}
+                >
+                  Candidate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('recruiter')}
+                  style={role === 'recruiter' ? styles.toggleActive : styles.toggleInactive}
+                >
+                  Recruiter
+                </button>
+              </div>
+            </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              style={styles.input}
-            />
-          </div>
+            <div style={styles.field}>
+              <label style={styles.label}>Full name</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                placeholder="Your full name"
+                required
+                style={styles.input}
+              />
+            </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Min. 8 characters"
-              required
-              style={styles.input}
-            />
-          </div>
+            <div style={styles.field}>
+              <label style={styles.label}>Email address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="name@company.com"
+                required
+                style={styles.input}
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={loading ? { ...styles.button, opacity: 0.6 } : styles.button}
-          >
-            {loading ? 'Creating account...' : 'Create account'}
-          </button>
-        </form>
+            <div style={styles.field}>
+              <label style={styles.label}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+                required
+                style={styles.input}
+              />
+            </div>
 
-        <p style={styles.footer}>
-          Already have an account?{' '}
-          <Link to="/login" style={styles.link}>Sign in</Link>
-        </p>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                ...styles.button,
+                ...(loading ? styles.buttonDisabled : {}),
+              }}
+            >
+              {loading ? 'Creating account...' : 'Create account'}
+            </button>
+          </form>
+
+          <div style={styles.divider} />
+
+          <p style={styles.footer}>
+            Already have an account?{' '}
+            <Link to="/login" style={styles.link}>
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
+
+      <div style={styles.accent} />
     </div>
   )
 }
@@ -143,106 +168,180 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f7f3ee',
-    fontFamily: 'system-ui, sans-serif',
+    backgroundColor: 'var(--color-bg-primary)',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  accent: {
+    position: 'absolute',
+    width: '400px',
+    height: '400px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(109, 93, 252, 0.08) 0%, transparent 70%)',
+    top: '-100px',
+    right: '-100px',
+    pointerEvents: 'none',
+  },
+  content: {
+    position: 'relative',
+    zIndex: 1,
+    width: '100%',
+    maxWidth: '420px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '48px',
+  },
+  logo: {
+    marginBottom: '16px',
+  },
+  logoText: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: 'var(--color-text-primary)',
+    letterSpacing: '-0.02em',
+    fontFamily: 'var(--font-display)',
+  },
+  logoDot: {
+    fontSize: '32px',
+    color: 'var(--color-primary)',
+    fontFamily: 'var(--font-display)',
+  },
+  tagline: {
+    fontSize: '16px',
+    color: 'var(--color-text-secondary)',
+    fontWeight: '500',
+    letterSpacing: '0.02em',
   },
   card: {
-    background: '#ffffff',
-    border: '1px solid #ddd6cc',
-    borderRadius: '4px',
-    padding: '2.5rem',
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border-light)',
+    borderRadius: 'var(--radius-xl)',
+    padding: '40px',
+    backdropFilter: 'blur(10px)',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
     width: '100%',
-    maxWidth: '400px',
+  },
+  cardHeader: {
+    marginBottom: '32px',
   },
   title: {
-    fontSize: '24px',
-    fontWeight: '500',
-    marginBottom: '4px',
-    color: '#1a1714',
+    fontSize: '28px',
+    fontWeight: '600',
+    color: 'var(--color-text-primary)',
+    marginBottom: '8px',
+    fontFamily: 'var(--font-display)',
   },
   subtitle: {
     fontSize: '14px',
-    color: '#8a837a',
-    marginBottom: '24px',
+    color: 'var(--color-text-secondary)',
   },
   error: {
-    background: '#fee2e2',
-    border: '1px solid #fca5a5',
-    borderRadius: '3px',
-    padding: '10px 14px',
-    fontSize: '13px',
-    color: '#991b1b',
-    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '12px',
+    background: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.2)',
+    borderRadius: 'var(--radius-md)',
+    padding: '12px 16px',
+    fontSize: '14px',
+    color: '#fca5a5',
+    marginBottom: '24px',
+  },
+  errorIcon: {
+    fontSize: '18px',
+    flexShrink: 0,
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '20px',
   },
   field: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '8px',
   },
   label: {
     fontSize: '13px',
     fontWeight: '500',
-    color: '#1a1714',
+    color: 'var(--color-text-primary)',
+    letterSpacing: '0.01em',
   },
   input: {
-    padding: '10px 12px',
-    border: '1px solid #ddd6cc',
-    borderRadius: '3px',
+    padding: '11px 14px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
     fontSize: '14px',
     outline: 'none',
-    color: '#1a1714',
-    backgroundColor: '#fff',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    fontFamily: 'var(--font-primary)',
+    transition: 'all var(--transition-fast)',
   },
   toggle: {
     display: 'flex',
-    border: '1px solid #ddd6cc',
-    borderRadius: '3px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
     overflow: 'hidden',
+    backgroundColor: 'var(--color-bg-tertiary)',
   },
   toggleActive: {
     flex: 1,
     padding: '10px',
-    backgroundColor: '#1a1714',
+    backgroundColor: 'var(--color-primary)',
     color: '#fff',
     border: 'none',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '600',
     cursor: 'pointer',
+    transition: 'all var(--transition-fast)',
   },
   toggleInactive: {
     flex: 1,
     padding: '10px',
-    backgroundColor: '#fff',
-    color: '#8a837a',
+    backgroundColor: 'transparent',
+    color: 'var(--color-text-secondary)',
     border: 'none',
-    fontSize: '14px',
-    cursor: 'pointer',
-  },
-  button: {
-    marginTop: '8px',
-    padding: '11px',
-    backgroundColor: '#1a1714',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '3px',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
+    transition: 'all var(--transition-fast)',
+  },
+  button: {
+    marginTop: '4px',
+    padding: '12px 16px',
+    backgroundColor: 'var(--color-primary)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all var(--transition-fast)',
+    boxShadow: '0 4px 12px rgba(109, 93, 252, 0.3)',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
+  divider: {
+    height: '1px',
+    background: 'var(--color-border-light)',
+    margin: '24px 0',
   },
   footer: {
-    marginTop: '20px',
     fontSize: '13px',
-    color: '#8a837a',
+    color: 'var(--color-text-secondary)',
     textAlign: 'center',
   },
   link: {
-    color: '#c8943a',
+    color: 'var(--color-primary)',
     textDecoration: 'none',
-    fontWeight: '500',
+    fontWeight: '600',
+    transition: 'color var(--transition-fast)',
   },
 }
