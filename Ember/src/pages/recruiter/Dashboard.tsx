@@ -111,7 +111,29 @@ export default function RecruiterDashboard() {
 
     setUpdatingId(null)
   }
+  async function startThread(candidateId: string, roleId: string) {
+    if (!user) return
 
+    const { data: existing } = await supabase
+      .from('threads')
+      .select('id')
+      .eq('recruiter_id', user.id)
+      .eq('candidate_id', candidateId)
+      .eq('role_id', roleId)
+      .maybeSingle()
+
+    if (!existing) {
+      await supabase
+        .from('threads')
+        .insert({
+          recruiter_id: user.id,
+          candidate_id: candidateId,
+          role_id: roleId,
+        })
+    }
+
+    navigate('/recruiter/messages')
+  }
   function getStatusStyle(status: SubmissionStatus) {
     const opt = statusOptions.find(o => o.value === status)
     return opt ? { color: opt.color, backgroundColor: opt.bg } : {}
@@ -261,6 +283,18 @@ export default function RecruiterDashboard() {
                             >
                               Watch replay →
                             </button>
+                            <button
+                              onClick={() => startThread(sub.candidate_id, sub.role_id)}
+                              style={styles.replayBtn}
+                            >
+                              Message
+                            </button>
+                            <button
+                              onClick={() => startThread(sub.candidate_id, sub.role_id)}
+                              style={styles.replayBtn}
+                            >
+                              Message
+                             </button>
 
                             <select
                               value={sub.status}

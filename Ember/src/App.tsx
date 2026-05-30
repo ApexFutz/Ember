@@ -13,6 +13,7 @@ import CandidateRoles from './pages/candidate/Roles'
 import Assessment from './pages/assessment/Assessment.tsx'
 import RecruiterDashboard from './pages/recruiter/Dashboard.tsx'
 import Replay from './pages/recruiter/Replay.tsx'
+import Messages from './pages/messages/Messages.tsx'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -53,7 +54,7 @@ function AppRoutes() {
         <Route path="roles" element={<RecruiterRoles />} />
         <Route path="roles/new" element={<NewRole />} />
         <Route path="roles/:id/ruleset" element={<Ruleset />} />
-        <Route path="messages" element={<div>Messages coming soon</div>} />
+        <Route path="messages" element={<Messages />} />
         <Route path="profile" element={<RecruiterProfile />} />
         <Route path="submissions/:id/replay" element={<Replay />} />
       </Route>
@@ -67,7 +68,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<Navigate to="/candidate/roles" replace />} />
         <Route path="roles" element={<CandidateRoles />} />
         <Route path="assessments" element={<div>Assessments coming soon</div>} />
-        <Route path="messages" element={<div>Messages coming soon</div>} />
+        <Route path="messages" element={<Messages />} />
         <Route path="profile" element={<CandidateProfile />} />
       </Route>
 
