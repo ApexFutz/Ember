@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { getTemplateFiles, getTemplateLabel } from '../../lib/starterTemplates'
 
 interface Ruleset {
   task_description: string
@@ -10,6 +11,7 @@ interface Ruleset {
   task_type: string
   time_limit_mins: number
   ai_allowed: boolean
+  starter_template: string
 }
 
 interface Role {
@@ -97,6 +99,9 @@ useEffect(() => {
       if (rulesetData) {
         setRuleset(rulesetData)
         setTimeLeft(rulesetData.time_limit_mins * 60)
+        const templateFiles = getTemplateFiles(rulesetData.starter_template)
+        setFiles(templateFiles)
+        setActiveFile(templateFiles[0].name)
       }
 
       setLoading(false)
@@ -363,6 +368,12 @@ useEffect(() => {
             <span style={styles.startMetaLabel}>Stack</span>
             <span style={styles.startMetaValue}>
               {ruleset?.stack_tags?.join(', ') ?? 'Not specified'}
+            </span>
+          </div>
+          <div style={styles.startMetaItem}>
+            <span style={styles.startMetaLabel}>Starter code</span>
+            <span style={styles.startMetaValue}>
+              {getTemplateLabel(ruleset?.starter_template)}
             </span>
           </div>
         </div>

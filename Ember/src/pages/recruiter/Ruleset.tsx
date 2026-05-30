@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { STARTER_TEMPLATES, type StarterTemplate } from '../../lib/starterTemplates'
 
 type TaskType = 'build_a_feature' | 'fix_a_bug' | 'refactor_code' | 'write_tests' | 'other'
 type TimeLimit = 30 | 45 | 60 | 90
@@ -11,6 +12,7 @@ interface RulesetForm {
   task_description: string
   time_limit_mins: TimeLimit
   ai_allowed: boolean
+  starter_template: StarterTemplate
 }
 
 const taskTypeOptions: { value: TaskType; label: string; description: string }[] = [
@@ -38,6 +40,7 @@ export default function Ruleset() {
     task_description: '',
     time_limit_mins: 60,
     ai_allowed: false,
+    starter_template: 'blank',
   })
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -71,6 +74,7 @@ export default function Ruleset() {
           task_description: rulesetData.task_description ?? '',
           time_limit_mins: rulesetData.time_limit_mins ?? 60,
           ai_allowed: rulesetData.ai_allowed ?? false,
+          starter_template: rulesetData.starter_template ?? 'blank',
         })
       }
 
@@ -112,6 +116,7 @@ export default function Ruleset() {
         task_description: form.task_description,
         time_limit_mins: form.time_limit_mins,
         ai_allowed: form.ai_allowed,
+        starter_template: form.starter_template,
       }, { onConflict: 'role_id' })
 
     if (saveError) {
@@ -181,6 +186,30 @@ export default function Ruleset() {
                   }}
                 >
                   {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Starter codebase */}
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Starter codebase</p>
+            <p style={styles.cardHint}>
+              Give the candidate a surrounding codebase to work in. Their assessment becomes an
+              answer to this scaffold.
+            </p>
+            <div style={styles.taskOptions}>
+              {STARTER_TEMPLATES.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setForm(prev => ({ ...prev, starter_template: opt.value }))}
+                  style={{
+                    ...styles.taskOption,
+                    ...(form.starter_template === opt.value ? styles.taskOptionActive : {}),
+                  }}
+                >
+                  <span style={styles.taskOptionLabel}>{opt.label}</span>
+                  <span style={styles.taskOptionDesc}>{opt.description}</span>
                 </button>
               ))}
             </div>
