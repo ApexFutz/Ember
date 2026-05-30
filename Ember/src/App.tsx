@@ -12,6 +12,7 @@ import Ruleset from './pages/recruiter/Ruleset.tsx'
 import CandidateRoles from './pages/candidate/Roles'
 import Assessment from './pages/assessment/Assessment.tsx'
 import RecruiterDashboard from './pages/recruiter/Dashboard.tsx'
+import Replay from './pages/recruiter/Replay.tsx'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="roles/:id/ruleset" element={<Ruleset />} />
         <Route path="messages" element={<div>Messages coming soon</div>} />
         <Route path="profile" element={<RecruiterProfile />} />
+        <Route path="submissions/:id/replay" element={<Replay />} />
       </Route>
 
       {/* Candidate routes */}
