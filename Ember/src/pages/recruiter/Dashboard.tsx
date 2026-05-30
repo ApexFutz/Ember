@@ -28,16 +28,16 @@ interface RoleGroup {
 }
 
 const statusOptions: { value: SubmissionStatus; label: string; color: string; bg: string }[] = [
-  { value: 'pending_review', label: 'Pending review', color: '#b45309', bg: '#fef3c7' },
-  { value: 'reviewed', label: 'Reviewed', color: '#1e40af', bg: '#dbeafe' },
-  { value: 'moved_forward', label: 'Moved forward', color: '#2d6a4f', bg: '#d8f3dc' },
-  { value: 'passed', label: 'Passed', color: '#6b7280', bg: '#f3f4f6' },
+  { value: 'pending_review', label: 'Pending review', color: '#fb923c', bg: 'rgba(249, 115, 22, 0.12)' },
+  { value: 'reviewed', label: 'Reviewed', color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.12)' },
+  { value: 'moved_forward', label: 'Moved forward', color: '#34d399', bg: 'rgba(16, 185, 129, 0.12)' },
+  { value: 'passed', label: 'Passed', color: '#9a9aa8', bg: 'rgba(154, 154, 168, 0.12)' },
 ]
 
 const availabilityColors: Record<string, string> = {
-  available: '#2d6a4f',
-  open: '#b45309',
-  not_looking: '#6b7280',
+  available: '#34d399',
+  open: '#fb923c',
+  not_looking: '#9a9aa8',
 }
 
 const availabilityLabels: Record<string, string> = {
@@ -297,12 +297,6 @@ export default function RecruiterDashboard() {
                             >
                               Message
                             </button>
-                            <button
-                              onClick={() => startThread(sub.candidate_id, sub.role_id)}
-                              style={styles.replayBtn}
-                            >
-                              Message
-                             </button>
 
                             <select
                               value={sub.status}
@@ -335,19 +329,19 @@ const styles: Record<string, React.CSSProperties> = {
   page: { maxWidth: '900px' },
   loading: { padding: '2rem', color: 'var(--color-text-secondary)', fontSize: '14px' },
   header: { marginBottom: '32px' },
-  title: { fontSize: '28px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)' },
-  subtitle: { fontSize: '14px', color: 'var(--color-text-secondary)', margin: '0 0 24px' },
-  statsRow: { display: 'flex', gap: '16px' },
+  title: { fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 var(--space-2)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
+  subtitle: { fontSize: 'var(--text-base)', color: 'var(--color-text-secondary)', margin: '0 0 var(--space-6)' },
+  statsRow: { display: 'flex', gap: 'var(--space-4)' },
   statCard: {
     background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border-light)',
-    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
     padding: '20px 24px',
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
     minWidth: '110px',
-    boxShadow: 'var(--shadow-sm)',
+    boxShadow: 'var(--shadow-md)',
   },
   statNum: { fontSize: '32px', fontWeight: '600', color: 'var(--color-primary)', fontFamily: 'var(--font-display)' },
   statLabel: { fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: '500' },
@@ -401,16 +395,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     color: 'var(--color-text-secondary)',
     background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border-light)',
-    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
   },
   groups: { display: 'flex', flexDirection: 'column', gap: '24px' },
   group: {
     background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border-light)',
-    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
     overflow: 'hidden',
-    boxShadow: 'var(--shadow-sm)',
+    boxShadow: 'var(--shadow-md)',
   },
   groupHeader: {
     display: 'flex',
@@ -462,7 +456,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontWeight: '600',
     padding: '4px 12px',
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: '999px',
+    letterSpacing: '0.02em',
   },
   actions: { display: 'flex', alignItems: 'center', gap: '10px' },
   replayBtn: {

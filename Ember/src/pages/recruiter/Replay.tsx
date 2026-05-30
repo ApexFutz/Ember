@@ -310,7 +310,7 @@ export default function Replay() {
           {pasteSteps.length > 0 && (
             <div style={styles.pasteWarning}>
               ⚠️ {pasteSteps.length} large paste event{pasteSteps.length !== 1 ? 's' : ''} detected
-              (marked in gold on the timeline). Review these moments for potential external code.
+              (marked on the timeline). Review these moments for potential external code.
             </div>
           )}
 
@@ -343,85 +343,86 @@ export default function Replay() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: { maxWidth: '860px' },
-  loading: { padding: '2rem', color: '#8a837a', fontSize: '14px' },
+  loading: { padding: '2rem', color: 'var(--color-text-secondary)', fontSize: '14px' },
   backBtn: {
-    background: 'none', border: 'none', color: '#8a837a',
-    fontSize: '13px', cursor: 'pointer', padding: 0, marginBottom: '16px', display: 'block',
+    background: 'none', border: 'none', color: 'var(--color-text-secondary)',
+    fontSize: 'var(--text-sm)', cursor: 'pointer', padding: 0, marginBottom: '16px', display: 'block',
   },
   header: { marginBottom: '24px' },
-  title: { fontSize: '24px', fontWeight: '500', color: '#1a1714', margin: '0 0 4px' },
-  subtitle: { fontSize: '14px', color: '#8a837a', margin: 0 },
+  title: { fontSize: 'var(--text-3xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 4px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
+  subtitle: { fontSize: 'var(--text-base)', color: 'var(--color-text-secondary)', margin: 0 },
   noLogs: {
-    padding: '40px', textAlign: 'center', fontSize: '14px', color: '#8a837a',
-    background: '#fff', border: '1px solid #ddd6cc', borderRadius: '4px',
+    padding: '40px', textAlign: 'center', fontSize: '14px', color: 'var(--color-text-secondary)',
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)',
   },
   editorCard: {
-    background: '#1e1e1e', borderRadius: '4px', overflow: 'hidden',
-    border: '1px solid #ddd6cc', marginBottom: '16px',
+    background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-xl)', overflow: 'hidden',
+    border: '1px solid var(--color-border)', marginBottom: '16px', boxShadow: 'var(--shadow-md)',
   },
   editorHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 16px', backgroundColor: '#252525', borderBottom: '1px solid #333',
+    padding: '10px 16px', backgroundColor: 'var(--color-bg-tertiary)', borderBottom: '1px solid var(--color-border)',
   },
-  fileName: { fontSize: '13px', color: '#fff', fontWeight: '500' },
-  stepIndicator: { fontSize: '12px', color: '#888' },
+  fileName: { fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', fontWeight: 'var(--weight-medium)', fontFamily: 'var(--font-mono)' },
+  stepIndicator: { fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' },
   editorWrapper: { height: '400px' },
   controls: {
     display: 'flex', alignItems: 'center', gap: '16px',
-    padding: '16px', background: '#fff', border: '1px solid #ddd6cc',
-    borderRadius: '4px', marginBottom: '16px',
+    padding: '16px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)', marginBottom: '16px', boxShadow: 'var(--shadow-md)',
   },
   playBtn: {
-    padding: '8px 18px', backgroundColor: '#1a1714', color: '#fff',
-    border: 'none', borderRadius: '3px', fontSize: '13px',
-    fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap', minWidth: '90px',
+    padding: '9px 18px', backgroundColor: 'var(--color-primary)', color: '#fff',
+    border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-semibold)', cursor: 'pointer', whiteSpace: 'nowrap', minWidth: '90px',
   },
   scrubberWrapper: { flex: 1, position: 'relative', display: 'flex', alignItems: 'center' },
-  scrubber: { width: '100%', cursor: 'pointer' },
+  scrubber: { width: '100%', cursor: 'pointer', accentColor: 'var(--color-primary)' },
   pasteMarker: {
     position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-    width: '3px', height: '14px', backgroundColor: '#c8943a',
+    width: '3px', height: '14px', backgroundColor: 'var(--color-primary)',
     borderRadius: '1px', pointerEvents: 'none',
   },
   speedControls: { display: 'flex', gap: '4px' },
   speedBtn: {
-    padding: '6px 12px', border: '1px solid #ddd6cc', borderRadius: '3px',
-    background: '#fff', fontSize: '12px', color: '#8a837a', cursor: 'pointer',
+    padding: '7px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-bg-tertiary)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer',
   },
   speedBtnActive: {
-    padding: '6px 12px', border: '1px solid #1a1714', borderRadius: '3px',
-    background: '#1a1714', fontSize: '12px', color: '#fff', cursor: 'pointer',
+    padding: '7px 12px', border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-primary)', fontSize: 'var(--text-xs)', color: '#fff', cursor: 'pointer', fontWeight: 'var(--weight-semibold)',
   },
   finalBtn: {
-    padding: '8px 16px', border: '1px solid #ddd6cc', borderRadius: '3px',
-    background: '#fff', fontSize: '12px', color: '#1a1714', cursor: 'pointer', whiteSpace: 'nowrap',
+    padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    background: 'transparent', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 'var(--weight-medium)',
   },
   pasteWarning: {
-    background: '#fef3c7', border: '1px solid #fde047', borderRadius: '3px',
-    padding: '12px 16px', fontSize: '13px', color: '#854d0e',
+    background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 'var(--radius-md)',
+    padding: '12px 16px', fontSize: 'var(--text-sm)', color: 'var(--color-primary-light)',
     marginBottom: '16px', lineHeight: '1.6',
   },
   notesCard: {
-    background: '#fff', border: '1px solid #ddd6cc', borderRadius: '4px', padding: '20px',
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '20px', boxShadow: 'var(--shadow-md)',
   },
   notesLabel: {
-    fontSize: '11px', fontWeight: '500', letterSpacing: '0.08em',
-    textTransform: 'uppercase', color: '#8a837a', margin: '0 0 12px',
+    fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', letterSpacing: '0.08em',
+    textTransform: 'uppercase', color: 'var(--color-text-tertiary)', margin: '0 0 12px',
   },
   notesArea: {
-    width: '100%', padding: '10px 12px', border: '1px solid #ddd6cc',
-    borderRadius: '3px', fontSize: '14px', color: '#1a1714',
-    boxSizing: 'border-box', resize: 'vertical', fontFamily: 'system-ui, sans-serif',
-    outline: 'none',
+    width: '100%', padding: '10px 14px', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)', color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    boxSizing: 'border-box', resize: 'vertical', fontFamily: 'var(--font-primary)',
+    outline: 'none', lineHeight: 1.6,
   },
   notesFooter: {
     display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
     gap: '12px', marginTop: '12px',
   },
-  notesSaved: { fontSize: '13px', color: '#2d6a4f' },
+  notesSaved: { fontSize: 'var(--text-sm)', color: 'var(--color-success)' },
   notesBtn: {
-    padding: '8px 18px', backgroundColor: '#1a1714', color: '#fff',
-    border: 'none', borderRadius: '3px', fontSize: '13px',
-    fontWeight: '500', cursor: 'pointer',
+    padding: '9px 18px', backgroundColor: 'var(--color-primary)', color: '#fff',
+    border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-semibold)', cursor: 'pointer',
   },
 }

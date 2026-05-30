@@ -20,13 +20,14 @@ export default function SkeletonCard() {
 const styles: Record<string, React.CSSProperties> = {
   card: {
     background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border-light)',
-    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
     padding: '24px',
     marginBottom: '16px',
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
+    boxShadow: 'var(--shadow-md)',
   },
   line: {
     height: '12px',

@@ -177,7 +177,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '400px',
     height: '400px',
     borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(109, 93, 252, 0.08) 0%, transparent 70%)',
+    background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 70%)',
     top: '-100px',
     right: '-100px',
     pointerEvents: 'none',
@@ -322,7 +322,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all var(--transition-fast)',
-    boxShadow: '0 4px 12px rgba(109, 93, 252, 0.3)',
+    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
   },
   buttonDisabled: {
     opacity: 0.5,
