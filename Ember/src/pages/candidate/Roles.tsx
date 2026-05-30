@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import EmptyState from '../../components/EmptyState.tsx'
+import SkeletonCard from '../../components/SkeletonCard.tsx'
 
 interface Role {
   id: string
@@ -103,7 +105,16 @@ export default function CandidateRoles() {
     navigate(`/assessment/${roleId}`)
   }
 
-  if (loading) return <div style={styles.loading}>Loading roles...</div>
+  if (loading) return (
+    <div style={styles.page}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Open Roles</h1>
+        <p style={styles.subtitle}>Browse active opportunities. Complete the assessment to apply.</p>
+      </div>
+      <SkeletonCard />
+      <SkeletonCard />
+    </div>
+  )
 
   return (
     <div style={styles.page}>
@@ -127,10 +138,10 @@ export default function CandidateRoles() {
       )}
 
       {roles.length === 0 ? (
-        <div style={styles.empty}>
-          <p style={styles.emptyTitle}>No active roles right now</p>
-          <p style={styles.emptySubtitle}>Check back soon — new roles are added regularly.</p>
-        </div>
+        <EmptyState
+          title="No active roles right now"
+          message="Check back soon — new roles are added regularly."
+        />
       ) : (
         <div style={styles.roleList}>
           {roles.map(role => {

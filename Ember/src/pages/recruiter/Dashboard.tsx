@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import EmptyState from '../../components/EmptyState.tsx'
 
 type SubmissionStatus = 'pending_review' | 'reviewed' | 'moved_forward' | 'passed'
 
@@ -185,7 +186,14 @@ export default function RecruiterDashboard() {
           </div>
         )}
       </div>
-
+        {totalCount === 0 && (
+        <EmptyState
+          title="No submissions yet"
+          message="Once candidates complete assessments for your roles, they'll appear here ready to review."
+          actionLabel="Manage your roles"
+          onAction={() => navigate('/recruiter/roles')}
+        />
+      )}
       {totalCount > 0 && (
         <>
           {/* Tabs */}
