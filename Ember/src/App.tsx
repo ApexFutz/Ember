@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import Layout from './components/Layout'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 
@@ -26,19 +27,30 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
-      {/* Recruiter routes */}
-      <Route path="/recruiter/dashboard" element={
+      {/* Recruiter routes — wrapped in Layout */}
+      <Route path="/recruiter" element={
         <ProtectedRoute requiredRole="recruiter">
-          <div>Recruiter Dashboard coming soon</div>
+          <Layout />
         </ProtectedRoute>
-      } />
+      }>
+        <Route path="dashboard" element={<div>Recruiter Dashboard coming soon</div>} />
+        <Route path="roles" element={<div>Roles coming soon</div>} />
+        <Route path="messages" element={<div>Messages coming soon</div>} />
+        <Route path="profile" element={<div>Recruiter Profile coming soon</div>} />
+      </Route>
 
-      {/* Candidate routes */}
-      <Route path="/candidate/dashboard" element={
+      {/* Candidate routes — wrapped in Layout */}
+      <Route path="/candidate" element={
         <ProtectedRoute requiredRole="candidate">
-          <div>Candidate Dashboard coming soon</div>
+          <Layout />
         </ProtectedRoute>
-      } />
+      }>
+        <Route path="dashboard" element={<Navigate to="/candidate/roles" replace />} />
+        <Route path="roles" element={<div>Roles coming soon</div>} />
+        <Route path="assessments" element={<div>Assessments coming soon</div>} />
+        <Route path="messages" element={<div>Messages coming soon</div>} />
+        <Route path="profile" element={<div>Candidate Profile coming soon</div>} />
+      </Route>
 
       {/* Default */}
       <Route path="/" element={<Navigate to="/login" replace />} />
