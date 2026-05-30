@@ -355,11 +355,12 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '36px',
   },
   title: {
-    fontSize: '28px',
-    fontWeight: '600',
+    fontSize: 'var(--text-4xl)',
+    fontWeight: 'var(--weight-semibold)',
     color: 'var(--color-text-primary)',
     margin: '0 0 8px',
     fontFamily: 'var(--font-display)',
+    letterSpacing: '-0.02em',
   },
   subtitle: {
     fontSize: '14px',
@@ -402,10 +403,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   card: {
     background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border-light)',
-    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
     padding: '24px',
-    boxShadow: 'var(--shadow-sm)',
+    boxShadow: 'var(--shadow-md)',
   },
   cardLabel: {
     fontSize: '11px',
@@ -501,7 +502,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '5px 12px',
     backgroundColor: 'var(--color-bg-tertiary)',
     border: '1px solid var(--color-border)',
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: '999px',
     fontSize: '12px',
     color: 'var(--color-text-primary)',
     fontWeight: '500',
@@ -576,7 +577,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
     cursor: 'pointer',
     flexShrink: 0,
-    boxShadow: '0 4px 12px rgba(109, 93, 252, 0.3)',
+    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
     transition: 'all var(--transition-fast)',
   },
   saveBtn: {
@@ -589,7 +590,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
     cursor: 'pointer',
     width: '100%',
-    boxShadow: '0 4px 12px rgba(109, 93, 252, 0.3)',
+    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
     transition: 'all var(--transition-fast)',
   },
 }

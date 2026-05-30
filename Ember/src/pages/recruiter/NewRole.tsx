@@ -13,6 +13,8 @@ export default function NewRole() {
     department: '',
     location: 'remote' as LocationType,
     description: '',
+    salary_min: '',
+    salary_max: '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,6 +41,8 @@ export default function NewRole() {
         department: form.department || null,
         location: form.location,
         description: form.description || null,
+        salary_min: form.salary_min ? parseInt(form.salary_min) : null,
+        salary_max: form.salary_max ? parseInt(form.salary_max) : null,
         status,
       })
       .select()
@@ -63,6 +67,7 @@ export default function NewRole() {
         >
           ← Back to roles
         </button>
+        <div style={styles.stepBadge}>Step 1 of 2 · Role basics</div>
         <h1 style={styles.title}>New role</h1>
         <p style={styles.subtitle}>
           Start with the basics. You'll define the assessment ruleset next.
@@ -113,6 +118,32 @@ export default function NewRole() {
             ))}
           </div>
         </div>
+        <div style={styles.field}>
+          <label style={styles.label}>Compensation range (annual, USD)</label>
+          <div style={styles.salaryRow}>
+            <div style={styles.salaryInputWrap}>
+              <span style={styles.salaryPrefix}>$</span>
+              <input
+                type="number"
+                value={form.salary_min}
+                onChange={e => handleChange('salary_min', e.target.value)}
+                placeholder="Min"
+                style={styles.salaryInput}
+              />
+            </div>
+            <span style={styles.salaryDash}>–</span>
+            <div style={styles.salaryInputWrap}>
+              <span style={styles.salaryPrefix}>$</span>
+              <input
+                type="number"
+                value={form.salary_max}
+                onChange={e => handleChange('salary_max', e.target.value)}
+                placeholder="Max"
+                style={styles.salaryInput}
+              />
+            </div>
+          </div>
+        </div>
 
         <div style={styles.field}>
           <label style={styles.label}>
@@ -161,89 +192,104 @@ export default function NewRole() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    maxWidth: '600px',
+    maxWidth: '620px',
   },
   header: {
-    marginBottom: '28px',
+    marginBottom: 'var(--space-8)',
   },
   backBtn: {
     background: 'none',
     border: 'none',
-    color: '#8a837a',
-    fontSize: '13px',
+    color: 'var(--color-text-secondary)',
+    fontSize: 'var(--text-sm)',
     cursor: 'pointer',
     padding: '0',
-    marginBottom: '16px',
+    marginBottom: 'var(--space-4)',
     display: 'block',
   },
+  stepBadge: {
+    display: 'inline-block',
+    fontSize: 'var(--text-xs)',
+    fontWeight: 'var(--weight-semibold)',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: 'var(--color-primary)',
+    marginBottom: 'var(--space-3)',
+  },
   title: {
-    fontSize: '24px',
-    fontWeight: '500',
-    color: '#1a1714',
-    margin: '0 0 4px',
+    fontSize: 'var(--text-3xl)',
+    fontWeight: 'var(--weight-semibold)',
+    color: 'var(--color-text-primary)',
+    margin: '0 0 var(--space-2)',
+    fontFamily: 'var(--font-display)',
+    letterSpacing: '-0.02em',
   },
   subtitle: {
-    fontSize: '14px',
-    color: '#8a837a',
+    fontSize: 'var(--text-base)',
+    color: 'var(--color-text-secondary)',
     margin: 0,
+    lineHeight: 1.5,
   },
   error: {
-    background: '#fee2e2',
-    border: '1px solid #fca5a5',
-    borderRadius: '3px',
+    background: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    borderRadius: 'var(--radius-md)',
     padding: '10px 14px',
     fontSize: '13px',
-    color: '#991b1b',
+    color: 'var(--color-error)',
     marginBottom: '20px',
   },
   card: {
-    background: '#fff',
-    border: '1px solid #ddd6cc',
-    borderRadius: '4px',
-    padding: '24px',
-    marginBottom: '20px',
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
+    padding: 'var(--space-8)',
+    marginBottom: 'var(--space-5)',
+    boxShadow: 'var(--shadow-md)',
   },
   field: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
-    marginBottom: '20px',
+    gap: 'var(--space-2)',
+    marginBottom: 'var(--space-6)',
   },
   label: {
-    fontSize: '13px',
-    fontWeight: '500',
-    color: '#1a1714',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-medium)',
+    color: 'var(--color-text-primary)',
     display: 'flex',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   charCount: {
     fontSize: '11px',
-    color: '#8a837a',
+    color: 'var(--color-text-secondary)',
     fontWeight: '400',
   },
   input: {
-    padding: '9px 12px',
-    border: '1px solid #ddd6cc',
-    borderRadius: '3px',
-    fontSize: '14px',
-    color: '#1a1714',
-    backgroundColor: '#fff',
+    padding: '10px 14px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-base)',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
   },
   textarea: {
-    padding: '9px 12px',
-    border: '1px solid #ddd6cc',
-    borderRadius: '3px',
-    fontSize: '14px',
-    color: '#1a1714',
-    backgroundColor: '#fff',
+    padding: '10px 14px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-base)',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
     resize: 'vertical',
-    fontFamily: 'system-ui, sans-serif',
+    fontFamily: 'var(--font-primary)',
+    lineHeight: 1.6,
   },
   locationRow: {
     display: 'flex',
@@ -251,41 +297,78 @@ const styles: Record<string, React.CSSProperties> = {
   },
   locationBtn: {
     flex: 1,
-    padding: '9px',
-    border: '1px solid #ddd6cc',
-    borderRadius: '3px',
-    fontSize: '13px',
-    color: '#8a837a',
-    backgroundColor: '#fff',
+    padding: '10px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-medium)',
+    color: 'var(--color-text-secondary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
     cursor: 'pointer',
   },
   locationBtnActive: {
-    backgroundColor: '#1a1714',
+    backgroundColor: 'var(--color-primary)',
     color: '#fff',
-    borderColor: '#1a1714',
+    borderColor: 'var(--color-primary)',
+    boxShadow: '0 2px 8px rgba(249, 115, 22, 0.25)',
+  },
+  salaryRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  salaryInputWrap: {
+    position: 'relative',
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  salaryPrefix: {
+    position: 'absolute',
+    left: '12px',
+    fontSize: '14px',
+    color: 'var(--color-text-secondary)',
+    pointerEvents: 'none',
+  },
+  salaryInput: {
+    padding: '10px 14px 10px 26px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-base)',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  salaryDash: {
+    color: 'var(--color-text-secondary)',
+    fontSize: '14px',
   },
   actions: {
     display: 'flex',
-    gap: '12px',
+    gap: 'var(--space-3)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   draftBtn: {
-    padding: '10px 20px',
+    padding: '11px 22px',
     background: 'transparent',
-    border: '1px solid #ddd6cc',
-    borderRadius: '3px',
-    fontSize: '13px',
-    color: '#4a453f',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-medium)',
+    color: 'var(--color-text-secondary)',
     cursor: 'pointer',
   },
   activeBtn: {
-    padding: '10px 20px',
-    backgroundColor: '#1a1714',
+    padding: '11px 22px',
+    backgroundColor: 'var(--color-primary)',
     color: '#fff',
     border: 'none',
-    borderRadius: '3px',
-    fontSize: '13px',
-    fontWeight: '500',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-semibold)',
     cursor: 'pointer',
   },
 }

@@ -33,6 +33,7 @@
   --text-xl: 18px;
   --text-2xl: 20px;
   --text-3xl: 24px;
+  --text-4xl: 28px;
 
   --weight-regular: 400;
   --weight-medium: 500;
@@ -160,7 +161,7 @@ input:focus:not(:disabled),
 textarea:focus:not(:disabled),
 select:focus:not(:disabled) {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.1);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 /* Link styling */

@@ -19,7 +19,7 @@ const statusConfig: Record<SubmissionStatus, { label: string; color: string; bg:
   pending_review: { label: 'Pending review', color: '#fbbf24', bg: 'rgba(245, 158, 11, 0.15)' },
   reviewed: { label: 'Reviewed', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
   moved_forward: { label: 'Moved forward', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-  passed: { label: 'Not selected', color: 'var(--color-text-secondary)', bg: 'rgba(99, 102, 241, 0.1)' },
+  passed: { label: 'Not selected', color: 'var(--color-text-secondary)', bg: 'rgba(154, 154, 168, 0.12)' },
 }
 
 function formatDate(dateStr: string) {
@@ -107,19 +107,19 @@ export default function CandidateAssessments() {
 const styles: Record<string, React.CSSProperties> = {
   page: { maxWidth: '900px' },
   header: { marginBottom: '32px' },
-  title: { fontSize: '28px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)' },
+  title: { fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: '14px', color: 'var(--color-text-secondary)', margin: 0 },
   list: { display: 'flex', flexDirection: 'column', gap: '12px' },
   card: {
     background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border-light)',
-    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
     padding: '20px 24px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     transition: 'all var(--transition-base)',
-    boxShadow: 'var(--shadow-sm)',
+    boxShadow: 'var(--shadow-md)',
   },
   roleTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 6px' },
   date: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 },
@@ -127,6 +127,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontWeight: '600',
     padding: '5px 12px',
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: '999px',
+    letterSpacing: '0.02em',
   },
 }

@@ -318,11 +318,11 @@ export default function Messages() {
 const styles: Record<string, React.CSSProperties> = {
   page: { maxWidth: '1000px' },
   loading: { padding: '2rem', color: 'var(--color-text-secondary)', fontSize: '14px' },
-  title: { fontSize: '28px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 24px', fontFamily: 'var(--font-display)' },
+  title: { fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   container: {
     display: 'flex',
-    border: '1px solid var(--color-border-light)',
-    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
     overflow: 'hidden',
     height: '600px',
     background: 'var(--color-bg-secondary)',

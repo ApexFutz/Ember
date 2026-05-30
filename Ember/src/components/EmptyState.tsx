@@ -24,16 +24,18 @@ export default function EmptyState({ title, message, actionLabel, onAction }: Em
 const styles: Record<string, React.CSSProperties> = {
   wrapper: {
     background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border-light)',
+    border: '1px solid var(--color-border)',
     borderRadius: 'var(--radius-xl)',
     padding: '60px 48px',
     textAlign: 'center',
+    boxShadow: 'var(--shadow-md)',
   },
   title: {
-    fontSize: '18px',
-    fontWeight: '600',
+    fontSize: 'var(--text-xl)',
+    fontWeight: 'var(--weight-semibold)',
     color: 'var(--color-text-primary)',
     margin: '0 0 12px',
+    fontFamily: 'var(--font-display)',
   },
   message: {
     fontSize: '14px',
@@ -51,6 +53,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all var(--transition-fast)',
-    boxShadow: '0 4px 12px rgba(109, 93, 252, 0.3)',
+    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
   },
 }
