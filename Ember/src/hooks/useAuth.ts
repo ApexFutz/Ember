@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
@@ -9,6 +9,14 @@ interface Profile {
   photo_url: string | null
   availability?: 'available' | 'open' | 'not_looking'
   company_name?: string | null
+  headline?: string | null
+  bio?: string | null
+  skills?: string[]
+  github_url?: string | null
+  linkedin_url?: string | null
+  portfolio_url?: string | null
+  recruiter_linkedin_url?: string | null
+  job_title?: string | null
 }
 
 interface AuthState {
@@ -17,6 +25,7 @@ interface AuthState {
   loading: boolean
   isRecruiter: boolean
   isCandidate: boolean
+  refreshProfile: () => Promise<void>
 }
 
 export function useAuth(): AuthState {
@@ -24,15 +33,34 @@ export function useAuth(): AuthState {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // fetchProfile is now defined at hook scope so refreshProfile can call it
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching profile:', error.message)
+    } else {
+      setProfile(data)
+    }
+    setLoading(false)
+  }, [])
+
+  const refreshProfile = useCallback(async () => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (currentUser) await fetchProfile(currentUser.id)
+  }, [fetchProfile])
+
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else setLoading(false)
     })
 
-    // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null)
@@ -45,22 +73,7 @@ export function useAuth(): AuthState {
     )
 
     return () => subscription.unsubscribe()
-  }, [])
-
-  async function fetchProfile(userId: string) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, role, full_name, photo_url, availability, company_name')
-      .eq('id', userId)
-      .single()
-
-    if (error) {
-      console.error('Error fetching profile:', error.message)
-    } else {
-      setProfile(data)
-    }
-    setLoading(false)
-  }
+  }, [fetchProfile])
 
   return {
     user,
@@ -68,5 +81,6 @@ export function useAuth(): AuthState {
     loading,
     isRecruiter: profile?.role === 'recruiter',
     isCandidate: profile?.role === 'candidate',
+    refreshProfile,
   }
 }

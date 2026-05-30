@@ -22,7 +22,7 @@ const availabilityOptions: { value: Availability; label: string; color: string }
 ]
 
 export default function CandidateProfile() {
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const [form, setForm] = useState<ProfileForm>({
     full_name: '',
     headline: '',
@@ -131,6 +131,7 @@ export default function CandidateProfile() {
       if (saveError) throw saveError
 
       setSaved(true)
+      await refreshProfile()
       setTimeout(() => setSaved(false), 3000)
     } catch (err: any) {
       setError(err.message)
