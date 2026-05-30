@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
+import CandidateProfile from './pages/candidate/Profile'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -49,7 +50,7 @@ function AppRoutes() {
         <Route path="roles" element={<div>Roles coming soon</div>} />
         <Route path="assessments" element={<div>Assessments coming soon</div>} />
         <Route path="messages" element={<div>Messages coming soon</div>} />
-        <Route path="profile" element={<div>Candidate Profile coming soon</div>} />
+        <Route path="profile" element={<CandidateProfile />} />
       </Route>
 
       {/* Default */}
