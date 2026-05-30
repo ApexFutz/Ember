@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -6,7 +6,54 @@ import { supabase } from '../lib/supabase'
 export default function Layout() {
   const { profile, isRecruiter } = useAuth()
   const navigate = useNavigate()
-  const [unreadCount] = useState(0) // will wire up in messaging milestone
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    if (!profile) return
+
+    async function fetchUnread() {
+      const { count } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('read', false)
+        .neq('sender_id', profile!.id)
+
+      setUnreadCount(count ?? 0)
+    }
+
+    fetchUnread()
+
+    const channel = supabase
+      .channel('unread-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=neq.${profile.id}`,
+        },
+        () => {
+          fetchUnread()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+        },
+        () => {
+          fetchUnread()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [profile])
 
   async function handleLogout() {
     await supabase.auth.signOut()
