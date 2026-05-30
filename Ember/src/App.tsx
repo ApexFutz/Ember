@@ -6,8 +6,9 @@ import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import CandidateProfile from './pages/candidate/Profile'
 import RecruiterProfile from './pages/recruiter/Profile'
-import RecruiterRoles from './pages/recruiter/Roles'
-import NewRole from './pages/recruiter/NewRole'
+import RecruiterRoles from './pages/recruiter/Roles.tsx'
+import NewRole from './pages/recruiter/NewRole.tsx'
+import Ruleset from './pages/recruiter/Ruleset.tsx'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -40,7 +41,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<div>Recruiter Dashboard coming soon</div>} />
         <Route path="roles" element={<RecruiterRoles />} />
         <Route path="roles/new" element={<NewRole />} />
-        <Route path="roles/:id/ruleset" element={<div>Ruleset builder coming soon</div>} />
+        <Route path="roles/:id/ruleset" element={<Ruleset />} />
         <Route path="messages" element={<div>Messages coming soon</div>} />
         <Route path="profile" element={<RecruiterProfile />} />
       </Route>
