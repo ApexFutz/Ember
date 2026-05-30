@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import CandidateProfile from './pages/candidate/Profile'
+import RecruiterProfile from './pages/recruiter/Profile'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -37,7 +38,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<div>Recruiter Dashboard coming soon</div>} />
         <Route path="roles" element={<div>Roles coming soon</div>} />
         <Route path="messages" element={<div>Messages coming soon</div>} />
-        <Route path="profile" element={<div>Recruiter Profile coming soon</div>} />
+        <Route path="profile" element={<RecruiterProfile />} />
       </Route>
 
       {/* Candidate routes — wrapped in Layout */}
