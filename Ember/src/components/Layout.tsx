@@ -70,6 +70,7 @@ export default function Layout() {
   const candidateNav = [
     { path: '/candidate/roles', label: 'Roles' },
     { path: '/candidate/assessments', label: 'My Assessments' },
+    { path: '/candidate/skills', label: 'Skills' },
     { path: '/candidate/messages', label: 'Messages' },
     { path: '/candidate/profile', label: 'Profile' },
   ]

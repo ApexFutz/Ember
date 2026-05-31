@@ -16,6 +16,7 @@ import {
   type TestCase,
   type TestResult,
 } from './harness.ts'
+import { deriveSkills, tierFromStats } from './skills.ts'
 
 const EXEC_TIMEOUT_MS = 5000
 
@@ -113,7 +114,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: ruleset } = await admin
       .from('rulesets')
-      .select('runtime, tests')
+      .select('runtime, tests, stack_tags, task_type')
       .eq('role_id', role_id)
       .single()
 
@@ -164,6 +165,33 @@ Deno.serve(async (req: Request) => {
         .from('submissions')
         .update({ score, tests_passed: passed, tests_total: total, metrics })
         .eq('assessment_id', assessment_id)
+
+      // Attribute the result to the candidate's skill profile (only when scored).
+      if (score !== null) {
+        const skills = deriveSkills(ruleset?.stack_tags, ruleset?.task_type ?? '')
+        for (const skill of skills) {
+          const { data: existing } = await admin
+            .from('candidate_skills')
+            .select('evidence_count, score_sum')
+            .eq('candidate_id', user.id)
+            .eq('skill', skill.slug)
+            .maybeSingle()
+
+          const evidenceCount = (existing?.evidence_count ?? 0) + 1
+          const scoreSum = Number(existing?.score_sum ?? 0) + score
+          const tier = tierFromStats(scoreSum / evidenceCount, evidenceCount)
+
+          await admin.from('candidate_skills').upsert({
+            candidate_id: user.id,
+            skill: skill.slug,
+            label: skill.label,
+            evidence_count: evidenceCount,
+            score_sum: scoreSum,
+            tier,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'candidate_id,skill' })
+        }
+      }
 
       return json({ tests_passed: passed, tests_total: total, score })
     }
