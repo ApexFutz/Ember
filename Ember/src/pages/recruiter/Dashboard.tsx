@@ -19,6 +19,9 @@ interface Submission {
   candidate_photo: string | null
   availability: string | null
   role_title: string
+  score: number | null
+  tests_passed: number | null
+  tests_total: number | null
 }
 
 interface RoleGroup {
@@ -275,13 +278,27 @@ export default function RecruiterDashboard() {
                         </div>
 
                         <div style={styles.subBottom}>
-                          {/* Status badge */}
-                          <span style={{
-                            ...styles.statusBadge,
-                            ...getStatusStyle(sub.status),
-                          }}>
-                            {statusOptions.find(o => o.value === sub.status)?.label}
-                          </span>
+                          <div style={styles.badgeRow}>
+                            {/* Status badge */}
+                            <span style={{
+                              ...styles.statusBadge,
+                              ...getStatusStyle(sub.status),
+                            }}>
+                              {statusOptions.find(o => o.value === sub.status)?.label}
+                            </span>
+
+                            {/* Score badge */}
+                            {sub.tests_total != null && sub.tests_total > 0 && (
+                              <span style={{
+                                ...styles.statusBadge,
+                                ...((sub.score ?? 0) >= 1
+                                  ? { color: '#34d399', backgroundColor: 'rgba(16, 185, 129, 0.12)' }
+                                  : { color: '#fb923c', backgroundColor: 'rgba(249, 115, 22, 0.12)' }),
+                              }}>
+                                {sub.tests_passed}/{sub.tests_total} tests · {Math.round((sub.score ?? 0) * 100)}%
+                              </span>
+                            )}
+                          </div>
 
                           {/* Actions */}
                           <div style={styles.actions}>
@@ -452,6 +469,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  badgeRow: { display: 'flex', alignItems: 'center', gap: '8px' },
   statusBadge: {
     fontSize: '12px',
     fontWeight: '600',
