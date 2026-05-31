@@ -16,6 +16,7 @@ import Replay from './pages/recruiter/Replay.tsx'
 import Messages from './pages/messages/Messages.tsx'
 import CandidateAssessments from './pages/candidate/Assessments.tsx'
 import CandidateSkills from './pages/candidate/Skills.tsx'
+import Practice from './pages/candidate/Practice.tsx'
 
 function ProtectedRoute({ children, requiredRole }: {
   children: React.ReactElement
@@ -43,6 +44,13 @@ function AppRoutes() {
       <Route path="/assessment/:roleId" element={
         <ProtectedRoute requiredRole="candidate">
           <Assessment />
+        </ProtectedRoute>
+      } />
+
+      {/* Practice — fullscreen, standalone */}
+      <Route path="/candidate/practice/:taskId" element={
+        <ProtectedRoute requiredRole="candidate">
+          <Practice />
         </ProtectedRoute>
       } />
 

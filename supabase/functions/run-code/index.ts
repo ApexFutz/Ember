@@ -91,6 +91,30 @@ async function runTest(runtime: Runtime, files: any[], test: TestCase): Promise<
   return parsed
 }
 
+// Upsert a single skill's running aggregate for a candidate after a scored run.
+async function attributeSkill(admin: any, candidateId: string, slug: string, label: string, score: number) {
+  const { data: existing } = await admin
+    .from('candidate_skills')
+    .select('evidence_count, score_sum')
+    .eq('candidate_id', candidateId)
+    .eq('skill', slug)
+    .maybeSingle()
+
+  const evidenceCount = (existing?.evidence_count ?? 0) + 1
+  const scoreSum = Number(existing?.score_sum ?? 0) + score
+  const tier = tierFromStats(scoreSum / evidenceCount, evidenceCount)
+
+  await admin.from('candidate_skills').upsert({
+    candidate_id: candidateId,
+    skill: slug,
+    label,
+    evidence_count: evidenceCount,
+    score_sum: scoreSum,
+    tier,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'candidate_id,skill' })
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -109,17 +133,34 @@ Deno.serve(async (req: Request) => {
 
     const admin = createClient(supabaseUrl, serviceKey)
 
-    const { role_id, files, mode, assessment_id } = await req.json()
-    if (!role_id || !Array.isArray(files)) return json({ error: 'bad request' }, 400)
+    const { role_id, files, mode, assessment_id, practice_task_id } = await req.json()
+    if (!Array.isArray(files)) return json({ error: 'bad request' }, 400)
+    if (!role_id && !practice_task_id) return json({ error: 'role_id or practice_task_id required' }, 400)
 
-    const { data: ruleset } = await admin
-      .from('rulesets')
-      .select('runtime, tests, stack_tags, task_type')
-      .eq('role_id', role_id)
-      .single()
-
-    const runtime: Runtime = (ruleset?.runtime as Runtime) ?? 'node'
-    const allTests: TestCase[] = Array.isArray(ruleset?.tests) ? ruleset!.tests : []
+    // Load the test set + runtime from whichever source applies.
+    let runtime: Runtime = 'node'
+    let allTests: TestCase[] = []
+    let practiceTask: any = null
+    let ruleset: any = null
+    if (practice_task_id) {
+      const { data } = await admin
+        .from('practice_tasks')
+        .select('runtime, tests, skill, skill_label')
+        .eq('id', practice_task_id)
+        .single()
+      practiceTask = data
+      runtime = (data?.runtime as Runtime) ?? 'node'
+      allTests = Array.isArray(data?.tests) ? data!.tests : []
+    } else {
+      const { data } = await admin
+        .from('rulesets')
+        .select('runtime, tests, stack_tags, task_type')
+        .eq('role_id', role_id)
+        .single()
+      ruleset = data
+      runtime = (data?.runtime as Runtime) ?? 'node'
+      allTests = Array.isArray(data?.tests) ? data!.tests : []
+    }
 
     if (mode === 'practice') {
       const visible = allTests.filter(t => !t.hidden)
@@ -129,15 +170,32 @@ Deno.serve(async (req: Request) => {
     }
 
     if (mode === 'submit') {
-      if (!assessment_id) return json({ error: 'assessment_id required' }, 400)
-
       const results: TestResult[] = []
       for (const t of allTests) results.push(...(await runTest(runtime, files, t)))
       const total = results.length
       const passed = results.filter(r => r.passed).length
       const score = total > 0 ? passed / total : null
 
-      // Derive integrity/effort metrics from the recorded logs + timing.
+      // --- Practice submission: write an attempt + attribute the single skill.
+      if (practice_task_id) {
+        await admin.from('practice_attempts').insert({
+          practice_task_id,
+          candidate_id: user.id,
+          files,
+          score,
+          tests_passed: passed,
+          tests_total: total,
+          status: 'submitted',
+        })
+        if (score !== null && practiceTask?.skill) {
+          await attributeSkill(admin, user.id, practiceTask.skill, practiceTask.skill_label ?? practiceTask.skill, score)
+        }
+        return json({ tests_passed: passed, tests_total: total, score })
+      }
+
+      // --- Assessment submission: score the submission row + metrics + skills.
+      if (!assessment_id) return json({ error: 'assessment_id required' }, 400)
+
       const { data: logRow } = await admin
         .from('assessment_logs')
         .select('log')
@@ -166,30 +224,10 @@ Deno.serve(async (req: Request) => {
         .update({ score, tests_passed: passed, tests_total: total, metrics })
         .eq('assessment_id', assessment_id)
 
-      // Attribute the result to the candidate's skill profile (only when scored).
       if (score !== null) {
         const skills = deriveSkills(ruleset?.stack_tags, ruleset?.task_type ?? '')
         for (const skill of skills) {
-          const { data: existing } = await admin
-            .from('candidate_skills')
-            .select('evidence_count, score_sum')
-            .eq('candidate_id', user.id)
-            .eq('skill', skill.slug)
-            .maybeSingle()
-
-          const evidenceCount = (existing?.evidence_count ?? 0) + 1
-          const scoreSum = Number(existing?.score_sum ?? 0) + score
-          const tier = tierFromStats(scoreSum / evidenceCount, evidenceCount)
-
-          await admin.from('candidate_skills').upsert({
-            candidate_id: user.id,
-            skill: skill.slug,
-            label: skill.label,
-            evidence_count: evidenceCount,
-            score_sum: scoreSum,
-            tier,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'candidate_id,skill' })
+          await attributeSkill(admin, user.id, skill.slug, skill.label, score)
         }
       }
 

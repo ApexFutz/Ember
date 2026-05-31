@@ -25,6 +25,22 @@ export default function CandidateSkills() {
   const navigate = useNavigate()
   const [skills, setSkills] = useState<CandidateSkill[]>([])
   const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState<string | null>(null) // skill slug or '*' for general
+  const [genError, setGenError] = useState<string | null>(null)
+
+  async function generatePractice(skill?: string) {
+    setGenerating(skill ?? '*')
+    setGenError(null)
+    const { data, error } = await supabase.functions.invoke('generate-practice', {
+      body: skill ? { skill } : {},
+    })
+    if (error || !data?.id) {
+      setGenError(error?.message ?? 'Could not generate a practice task. Try again.')
+      setGenerating(null)
+      return
+    }
+    navigate(`/candidate/practice/${data.id}`)
+  }
 
   useEffect(() => {
     if (!user) return
@@ -54,17 +70,30 @@ export default function CandidateSkills() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Skills</h1>
-        <p style={styles.subtitle}>Your proficiency, built from the assessments you complete.</p>
+      <div style={styles.headerRow}>
+        <div>
+          <h1 style={styles.title}>Skills</h1>
+          <p style={styles.subtitle}>Your proficiency, built from the assessments you complete.</p>
+        </div>
+        {skills.length > 0 && (
+          <button
+            onClick={() => generatePractice()}
+            disabled={generating !== null}
+            style={generating ? { ...styles.genBtn, opacity: 0.6 } : styles.genBtn}
+          >
+            {generating === '*' ? 'Generating…' : 'Generate practice'}
+          </button>
+        )}
       </div>
+
+      {genError && <div style={styles.error}>{genError}</div>}
 
       {skills.length === 0 ? (
         <EmptyState
           title="No skills yet"
-          message="Complete assessments to build your skill profile. Each one updates your proficiency in the technologies it covers."
-          actionLabel="Browse roles"
-          onAction={() => navigate('/candidate/roles')}
+          message="Generate a practice task to start building your skill profile, or complete a recruiter assessment."
+          actionLabel={generating === '*' ? 'Generating…' : 'Generate a practice task'}
+          onAction={() => generatePractice()}
         />
       ) : (
         <div style={styles.grid}>
@@ -88,6 +117,13 @@ export default function CandidateSkills() {
                     {s.evidence_count} assessment{s.evidence_count !== 1 ? 's' : ''}
                   </span>
                 </div>
+                <button
+                  onClick={() => generatePractice(s.skill)}
+                  disabled={generating !== null}
+                  style={generating ? { ...styles.cardPracticeBtn, opacity: 0.6 } : styles.cardPracticeBtn}
+                >
+                  {generating === s.skill ? 'Generating…' : 'Practice this skill'}
+                </button>
               </div>
             )
           })}
@@ -100,6 +136,22 @@ export default function CandidateSkills() {
 const styles: Record<string, React.CSSProperties> = {
   page: { maxWidth: '900px' },
   header: { marginBottom: '32px' },
+  headerRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' },
+  genBtn: {
+    padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none',
+    borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)',
+    cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+  },
+  cardPracticeBtn: {
+    marginTop: '4px', padding: '8px', width: '100%', background: 'transparent',
+    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', fontWeight: 'var(--weight-medium)',
+  },
+  error: {
+    background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
+    borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px',
+    color: 'var(--color-error)', marginBottom: '20px',
+  },
   title: { fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: '14px', color: 'var(--color-text-secondary)', margin: 0 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' },
