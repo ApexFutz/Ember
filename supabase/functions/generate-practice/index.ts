@@ -55,6 +55,7 @@ Deno.serve(async (req: Request) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+    console.log('generate-practice invoked; anthropic key present:', !!anthropicKey)
     if (!anthropicKey) return json({ error: 'ANTHROPIC_API_KEY not configured' }, 500)
 
     const userClient = createClient(supabaseUrl, anonKey, {
@@ -166,7 +167,7 @@ Deno.serve(async (req: Request) => {
       thinking: { type: 'adaptive' },
       output_config: {
         effort: 'medium',
-        format: { type: 'json_schema', name: 'practice_task', schema },
+        format: { type: 'json_schema', schema },
       },
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
       messages: [{
@@ -197,6 +198,7 @@ Deno.serve(async (req: Request) => {
     if (insertErr) return json({ error: insertErr.message }, 500)
     return json({ id: inserted.id })
   } catch (e) {
+    console.error('generate-practice error:', (e as Error).stack ?? (e as Error).message ?? String(e))
     return json({ error: (e as Error).message ?? 'internal error' }, 500)
   }
 })
