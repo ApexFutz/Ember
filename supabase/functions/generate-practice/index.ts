@@ -25,6 +25,10 @@ function json(body: unknown, status = 200) {
   })
 }
 
+// Cost guardrails: each generation is a paid Anthropic API call.
+const MAX_TASKS_PER_HOUR = 10        // per-candidate cap on paid generations
+const REUSE_WINDOW_HOURS = 24        // reuse an unsolved same-skill task within this window
+
 // Stable instructions — cached so repeated generations are cheap.
 const SYSTEM = `You generate short, self-contained coding practice tasks for the Ember assessment platform.
 
@@ -63,6 +67,17 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}))
     const requestedSkill: string | undefined = body?.skill
 
+    // Guardrail 1 — per-candidate hourly rate limit (caps paid API spend).
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count: recentCount } = await admin
+      .from('practice_tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('candidate_id', user.id)
+      .gte('created_at', hourAgo)
+    if ((recentCount ?? 0) >= MAX_TASKS_PER_HOUR) {
+      return json({ error: 'Practice generation limit reached. Try again later.' }, 429)
+    }
+
     // Pick the target skill + tier (adaptive: gap + level).
     const { data: skills } = await admin
       .from('candidate_skills')
@@ -94,6 +109,29 @@ Deno.serve(async (req: Request) => {
     }
 
     const targetTier = nextTier(currentTier)
+
+    // Guardrail 2 — reuse a recent unsolved task for this skill instead of
+    // paying for a new generation. Find the candidate's latest task for the
+    // skill in the window, and reuse it if it has no submitted attempt yet.
+    const reuseSince = new Date(Date.now() - REUSE_WINDOW_HOURS * 60 * 60 * 1000).toISOString()
+    const { data: recentTasks } = await admin
+      .from('practice_tasks')
+      .select('id')
+      .eq('candidate_id', user.id)
+      .eq('skill', skillSlug)
+      .gte('created_at', reuseSince)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const candidateTask = recentTasks?.[0]
+    if (candidateTask) {
+      const { count: attemptCount } = await admin
+        .from('practice_attempts')
+        .select('id', { count: 'exact', head: true })
+        .eq('practice_task_id', candidateTask.id)
+      if ((attemptCount ?? 0) === 0) {
+        return json({ id: candidateTask.id, reused: true })
+      }
+    }
 
     // Generate the task.
     const anthropic = new Anthropic({ apiKey: anthropicKey })
