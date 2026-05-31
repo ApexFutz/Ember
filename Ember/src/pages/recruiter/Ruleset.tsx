@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { STARTER_TEMPLATES, type StarterTemplate } from '../../lib/starterTemplates'
+import type { Runtime, TestCase } from '../../lib/testHarness'
 
 type TaskType = 'build_a_feature' | 'fix_a_bug' | 'refactor_code' | 'write_tests' | 'other'
 type TimeLimit = 30 | 45 | 60 | 90
@@ -11,6 +13,19 @@ interface RulesetForm {
   task_description: string
   time_limit_mins: TimeLimit
   ai_allowed: boolean
+  starter_template: StarterTemplate
+  runtime: Runtime
+  tests: TestCase[]
+}
+
+const runtimeOptions: { value: Runtime; label: string }[] = [
+  { value: 'node', label: 'JavaScript (Node)' },
+  { value: 'python', label: 'Python' },
+]
+
+const TEST_STUBS: Record<Runtime, string> = {
+  node: "emberAssert('adds two numbers', add(2, 3) === 5)",
+  python: "ember_assert('adds two numbers', add(2, 3) == 5)",
 }
 
 const taskTypeOptions: { value: TaskType; label: string; description: string }[] = [
@@ -38,6 +53,9 @@ export default function Ruleset() {
     task_description: '',
     time_limit_mins: 60,
     ai_allowed: false,
+    starter_template: 'blank',
+    runtime: 'node',
+    tests: [],
   })
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -71,6 +89,9 @@ export default function Ruleset() {
           task_description: rulesetData.task_description ?? '',
           time_limit_mins: rulesetData.time_limit_mins ?? 60,
           ai_allowed: rulesetData.ai_allowed ?? false,
+          starter_template: rulesetData.starter_template ?? 'blank',
+          runtime: rulesetData.runtime ?? 'node',
+          tests: rulesetData.tests ?? [],
         })
       }
 
@@ -88,6 +109,27 @@ export default function Ruleset() {
 
   function removeTag(tag: string) {
     setForm(prev => ({ ...prev, stack_tags: prev.stack_tags.filter(t => t !== tag) }))
+  }
+
+  function addTest() {
+    setForm(prev => ({
+      ...prev,
+      tests: [
+        ...prev.tests,
+        { name: `Test ${prev.tests.length + 1}`, content: TEST_STUBS[prev.runtime], hidden: false },
+      ],
+    }))
+  }
+
+  function updateTest(index: number, patch: Partial<TestCase>) {
+    setForm(prev => ({
+      ...prev,
+      tests: prev.tests.map((t, i) => (i === index ? { ...t, ...patch } : t)),
+    }))
+  }
+
+  function removeTest(index: number) {
+    setForm(prev => ({ ...prev, tests: prev.tests.filter((_, i) => i !== index) }))
   }
 
   function handleTagKeyDown(e: React.KeyboardEvent) {
@@ -112,6 +154,9 @@ export default function Ruleset() {
         task_description: form.task_description,
         time_limit_mins: form.time_limit_mins,
         ai_allowed: form.ai_allowed,
+        starter_template: form.starter_template,
+        runtime: form.runtime,
+        tests: form.tests,
       }, { onConflict: 'role_id' })
 
     if (saveError) {
@@ -178,6 +223,52 @@ export default function Ruleset() {
                   style={{
                     ...styles.timeOption,
                     ...(form.time_limit_mins === opt.value ? styles.timeOptionActive : {}),
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Starter codebase */}
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Starter codebase</p>
+            <p style={styles.cardHint}>
+              Give the candidate a surrounding codebase to work in. Their assessment becomes an
+              answer to this scaffold.
+            </p>
+            <div style={styles.taskOptions}>
+              {STARTER_TEMPLATES.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setForm(prev => ({ ...prev, starter_template: opt.value }))}
+                  style={{
+                    ...styles.taskOption,
+                    ...(form.starter_template === opt.value ? styles.taskOptionActive : {}),
+                  }}
+                >
+                  <span style={styles.taskOptionLabel}>{opt.label}</span>
+                  <span style={styles.taskOptionDesc}>{opt.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Runtime */}
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Runtime</p>
+            <p style={styles.cardHint}>
+              Language the candidate's code runs in when tests execute.
+            </p>
+            <div style={styles.timeOptions}>
+              {runtimeOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setForm(prev => ({ ...prev, runtime: opt.value }))}
+                  style={{
+                    ...styles.timeOption,
+                    ...(form.runtime === opt.value ? styles.timeOptionActive : {}),
                   }}
                 >
                   {opt.label}
@@ -267,6 +358,53 @@ export default function Ruleset() {
                 <span style={styles.aiOptionDesc}>AI inputs logged and visible in replay</span>
               </button>
             </div>
+          </div>
+
+          {/* Tests */}
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Tests</p>
+            <p style={styles.cardHint}>
+              Assertions run against the candidate's code. Use <code>{form.runtime === 'python' ? 'ember_assert(name, cond)' : 'emberAssert(name, cond)'}</code>.
+              Visible tests let candidates self-check; hidden tests are used to score the submission.
+            </p>
+
+            <div style={styles.testList}>
+              {form.tests.map((test, i) => (
+                <div key={i} style={styles.testItem}>
+                  <div style={styles.testItemHead}>
+                    <input
+                      type="text"
+                      value={test.name}
+                      onChange={e => updateTest(i, { name: e.target.value })}
+                      placeholder="Test name"
+                      style={styles.testNameInput}
+                    />
+                    <label style={styles.hiddenToggle}>
+                      <input
+                        type="checkbox"
+                        checked={test.hidden}
+                        onChange={e => updateTest(i, { hidden: e.target.checked })}
+                      />
+                      Hidden
+                    </label>
+                    <button onClick={() => removeTest(i)} style={styles.removeTest}>×</button>
+                  </div>
+                  <textarea
+                    value={test.content}
+                    onChange={e => updateTest(i, { content: e.target.value })}
+                    placeholder={TEST_STUBS[form.runtime]}
+                    style={styles.testTextarea}
+                    rows={3}
+                    spellCheck={false}
+                  />
+                </div>
+              ))}
+              {form.tests.length === 0 && (
+                <p style={styles.emptyTags}>No tests yet — add one to enable scoring.</p>
+              )}
+            </div>
+
+            <button onClick={addTest} style={styles.addTestBtn}>+ Add test</button>
           </div>
 
           <button
@@ -379,5 +517,34 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px', backgroundColor: 'var(--color-primary)', color: '#fff',
     border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)',
     fontWeight: 'var(--weight-semibold)', cursor: 'pointer', width: '100%',
+  },
+  testList: { display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' },
+  testItem: {
+    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    padding: 'var(--space-3)', background: 'var(--color-bg-tertiary)',
+  },
+  testItemHead: { display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' },
+  testNameInput: {
+    flex: 1, padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
+    fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-secondary)',
+    outline: 'none',
+  },
+  hiddenToggle: {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap',
+  },
+  removeTest: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: 'var(--color-text-tertiary)', fontSize: 'var(--text-lg)', padding: '0 4px', lineHeight: 1,
+  },
+  testTextarea: {
+    width: '100%', padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
+    fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-secondary)',
+    outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'var(--font-mono)', lineHeight: 1.5,
+  },
+  addTestBtn: {
+    padding: '8px 14px', background: 'transparent', border: '1px dashed var(--color-border)',
+    borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)',
+    cursor: 'pointer', fontWeight: 'var(--weight-medium)',
   },
 }

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { getTemplateFiles, getTemplateLabel } from '../../lib/starterTemplates'
+import type { TestResult } from '../../lib/testHarness'
 
 interface Ruleset {
   task_description: string
@@ -10,6 +12,8 @@ interface Ruleset {
   task_type: string
   time_limit_mins: number
   ai_allowed: boolean
+  starter_template: string
+  tests: { name: string; content: string; hidden: boolean }[]
 }
 
 interface Role {
@@ -57,6 +61,9 @@ export default function Assessment() {
   const [loading, setLoading] = useState(true)
   const [assessmentId, setAssessmentId] = useState<string | null>(null)
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
+  const [running, setRunning] = useState(false)
+  const [runResults, setRunResults] = useState<TestResult[] | null>(null)
+  const [runError, setRunError] = useState<string | null>(null)
 
   const logs = useRef<LogEntry[]>([])
   const lastSave = useRef<number>(Date.now())
@@ -97,6 +104,9 @@ useEffect(() => {
       if (rulesetData) {
         setRuleset(rulesetData)
         setTimeLeft(rulesetData.time_limit_mins * 60)
+        const templateFiles = getTemplateFiles(rulesetData.starter_template)
+        setFiles(templateFiles)
+        setActiveFile(templateFiles[0].name)
       }
 
       setLoading(false)
@@ -232,6 +242,22 @@ useEffect(() => {
     await submitAssessment('timed_out')
   }
 
+  async function handleRun() {
+    if (!roleId || running || locked) return
+    setRunning(true)
+    setRunError(null)
+    const { data, error } = await supabase.functions.invoke('run-code', {
+      body: { role_id: roleId, files, mode: 'practice' },
+    })
+    if (error) {
+      setRunError(error.message)
+      setRunResults(null)
+    } else {
+      setRunResults((data?.results as TestResult[]) ?? [])
+    }
+    setRunning(false)
+  }
+
   async function handleSubmit() {
     if (timerRef.current) clearInterval(timerRef.current)
     setLocked(true)
@@ -264,6 +290,16 @@ useEffect(() => {
         status: 'pending_review',
       })
 
+    // Score against the full (incl. hidden) test suite server-side. Failures
+    // here must not block the submission from completing.
+    try {
+      await supabase.functions.invoke('run-code', {
+        body: { role_id: roleId, files, mode: 'submit', assessment_id: assessmentId },
+      })
+    } catch (e) {
+      console.error('Scoring failed:', e)
+    }
+
     setSubmitting(false)
     setSubmitted(true)
   }
@@ -289,6 +325,7 @@ useEffect(() => {
   }
 
   const activeContent = files.find(f => f.name === activeFile)?.content ?? ''
+  const hasVisibleTests = ruleset?.tests?.some(t => !t.hidden) ?? false
 
   if (loading) return (
     <div style={styles.centered}>Loading assessment...</div>
@@ -365,6 +402,12 @@ useEffect(() => {
               {ruleset?.stack_tags?.join(', ') ?? 'Not specified'}
             </span>
           </div>
+          <div style={styles.startMetaItem}>
+            <span style={styles.startMetaLabel}>Starter code</span>
+            <span style={styles.startMetaValue}>
+              {getTemplateLabel(ruleset?.starter_template)}
+            </span>
+          </div>
         </div>
 
         <div style={styles.startDivider} />
@@ -401,6 +444,15 @@ useEffect(() => {
           </span>
         </div>
         <div style={styles.topRight}>
+          {hasVisibleTests && (
+            <button
+              onClick={handleRun}
+              disabled={running || locked}
+              style={running ? { ...styles.runBtn, opacity: 0.6 } : styles.runBtn}
+            >
+              {running ? 'Running...' : '▶ Run tests'}
+            </button>
+          )}
           <button
             onClick={handleSubmit}
             disabled={submitting || locked}
@@ -464,28 +516,56 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Editor */}
+        {/* Editor + results */}
         <div style={styles.editorWrapper}>
-          <Editor
-            height="100%"
-            language={getLanguage(activeFile)}
-            value={activeContent}
-            onChange={handleEditorChange}
-            onMount={handleEditorMount}
-            options={{
-              readOnly: locked,
-              fontSize: 14,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              tabSize: 2,
-              lineNumbers: 'on',
-              renderLineHighlight: 'line',
-              cursorBlinking: 'smooth',
-              automaticLayout: true,
-            }}
-            theme="vs-dark"
-          />
+          <div style={styles.editorArea}>
+            <Editor
+              height="100%"
+              language={getLanguage(activeFile)}
+              value={activeContent}
+              onChange={handleEditorChange}
+              onMount={handleEditorMount}
+              options={{
+                readOnly: locked,
+                fontSize: 14,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                tabSize: 2,
+                lineNumbers: 'on',
+                renderLineHighlight: 'line',
+                cursorBlinking: 'smooth',
+                automaticLayout: true,
+              }}
+              theme="vs-dark"
+            />
+          </div>
+
+          {(runResults !== null || runError) && (
+            <div style={styles.resultsPanel}>
+              <div style={styles.resultsHeader}>
+                <span>Test results</span>
+                <button onClick={() => { setRunResults(null); setRunError(null) }} style={styles.resultsClose}>×</button>
+              </div>
+              {runError ? (
+                <p style={styles.resultsError}>{runError}</p>
+              ) : runResults && runResults.length === 0 ? (
+                <p style={styles.resultsEmpty}>No visible tests to run.</p>
+              ) : (
+                <div style={styles.resultsList}>
+                  {runResults?.map((r, i) => (
+                    <div key={i} style={styles.resultRow}>
+                      <span style={{ ...styles.resultBadge, ...(r.passed ? styles.resultPass : styles.resultFail) }}>
+                        {r.passed ? 'PASS' : 'FAIL'}
+                      </span>
+                      <span style={styles.resultName}>{r.name}</span>
+                      {!r.passed && r.message && <span style={styles.resultMsg}>{r.message}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -815,5 +895,58 @@ const styles: Record<string, React.CSSProperties> = {
   editorWrapper: {
     flex: 1,
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
   },
+  editorArea: {
+    flex: 1,
+    overflow: 'hidden',
+    minHeight: 0,
+  },
+  runBtn: {
+    padding: '7px 16px',
+    backgroundColor: 'transparent',
+    color: 'var(--color-text-primary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-semibold)',
+    cursor: 'pointer',
+    marginRight: '10px',
+  },
+  resultsPanel: {
+    flexShrink: 0,
+    maxHeight: '40%',
+    overflowY: 'auto',
+    backgroundColor: 'var(--color-bg-secondary)',
+    borderTop: '1px solid var(--color-border)',
+    padding: '12px 16px',
+  },
+  resultsHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    fontSize: 'var(--text-xs)',
+    fontWeight: 'var(--weight-semibold)',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: 'var(--color-text-tertiary)',
+    marginBottom: '10px',
+  },
+  resultsClose: {
+    background: 'none', border: 'none', color: 'var(--color-text-tertiary)',
+    fontSize: 'var(--text-lg)', cursor: 'pointer', lineHeight: 1, padding: 0,
+  },
+  resultsError: { fontSize: 'var(--text-sm)', color: 'var(--color-error)', margin: 0 },
+  resultsEmpty: { fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0 },
+  resultsList: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  resultRow: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--text-sm)' },
+  resultBadge: {
+    fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px',
+    letterSpacing: '0.05em', flexShrink: 0,
+  },
+  resultPass: { color: 'var(--color-success)', backgroundColor: 'rgba(16, 185, 129, 0.12)' },
+  resultFail: { color: 'var(--color-error)', backgroundColor: 'rgba(239, 68, 68, 0.12)' },
+  resultName: { color: 'var(--color-text-primary)' },
+  resultMsg: { color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' },
 }

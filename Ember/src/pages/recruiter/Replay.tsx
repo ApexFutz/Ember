@@ -24,11 +24,19 @@ interface SubmissionDetail {
   recruiter_notes: string | null
 }
 
+interface Score {
+  score: number | null
+  tests_passed: number | null
+  tests_total: number | null
+  metrics: { edit_count?: number; paste_count?: number; duration_s?: number | null } | null
+}
+
 export default function Replay() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null)
+  const [score, setScore] = useState<Score | null>(null)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [finalFiles, setFinalFiles] = useState<FileTab[]>([])
   const [loading, setLoading] = useState(true)
@@ -56,6 +64,14 @@ export default function Replay() {
       if (subData) {
         setSubmission(subData)
         setNotes(subData.recruiter_notes ?? '')
+
+        // Load scoring + metrics for this submission
+        const { data: scoreData } = await supabase
+          .from('submissions')
+          .select('score, tests_passed, tests_total, metrics')
+          .eq('id', id)
+          .single()
+        if (scoreData) setScore(scoreData)
 
         // Load the assessment logs
         const { data: logData } = await supabase
@@ -314,6 +330,36 @@ export default function Replay() {
             </div>
           )}
 
+          {/* Results summary */}
+          {score && score.tests_total != null && score.tests_total > 0 && (
+            <div style={styles.summaryCard}>
+              <div style={styles.summaryItem}>
+                <span style={styles.summaryNum}>
+                  {score.tests_passed}/{score.tests_total}
+                </span>
+                <span style={styles.summaryLabel}>Tests passed</span>
+              </div>
+              <div style={styles.summaryItem}>
+                <span style={styles.summaryNum}>{Math.round((score.score ?? 0) * 100)}%</span>
+                <span style={styles.summaryLabel}>Score</span>
+              </div>
+              {score.metrics?.duration_s != null && (
+                <div style={styles.summaryItem}>
+                  <span style={styles.summaryNum}>{Math.round(score.metrics.duration_s / 60)}m</span>
+                  <span style={styles.summaryLabel}>Time used</span>
+                </div>
+              )}
+              <div style={styles.summaryItem}>
+                <span style={styles.summaryNum}>{score.metrics?.edit_count ?? 0}</span>
+                <span style={styles.summaryLabel}>Edits</span>
+              </div>
+              <div style={styles.summaryItem}>
+                <span style={styles.summaryNum}>{score.metrics?.paste_count ?? 0}</span>
+                <span style={styles.summaryLabel}>Pastes</span>
+              </div>
+            </div>
+          )}
+
           {/* Notes */}
           <div style={styles.notesCard}>
             <p style={styles.notesLabel}>Private notes</p>
@@ -400,6 +446,21 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 'var(--radius-md)',
     padding: '12px 16px', fontSize: 'var(--text-sm)', color: 'var(--color-primary-light)',
     marginBottom: '16px', lineHeight: '1.6',
+  },
+  summaryCard: {
+    display: 'flex', gap: '12px', flexWrap: 'wrap',
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)', padding: '20px', boxShadow: 'var(--shadow-md)', marginBottom: '16px',
+  },
+  summaryItem: {
+    display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '80px',
+  },
+  summaryNum: {
+    fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-semibold)',
+    color: 'var(--color-primary)', fontFamily: 'var(--font-display)',
+  },
+  summaryLabel: {
+    fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 'var(--weight-medium)',
   },
   notesCard: {
     background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '20px', boxShadow: 'var(--shadow-md)',
