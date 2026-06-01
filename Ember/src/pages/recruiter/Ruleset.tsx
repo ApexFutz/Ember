@@ -3,6 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { STARTER_TEMPLATES, type StarterTemplate } from '../../lib/starterTemplates'
 import type { Runtime, TestCase } from '../../lib/testHarness'
+import {
+  listLibraryAssessments,
+  getRoleAssessments,
+  addAssessmentToRole,
+  removeRoleAssessment,
+  updateRoleAssessment,
+  type LibraryAssessment,
+  type RoleAssessment,
+} from '../../lib/assessmentLibrary'
+
+type BundledAssessment = RoleAssessment & { library_assessments: LibraryAssessment | null }
 
 type TaskType = 'build_a_feature' | 'fix_a_bug' | 'refactor_code' | 'write_tests' | 'other'
 type TimeLimit = 30 | 45 | 60 | 90
@@ -62,6 +73,33 @@ export default function Ruleset() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [library, setLibrary] = useState<LibraryAssessment[]>([])
+  const [bundled, setBundled] = useState<BundledAssessment[]>([])
+  const [addId, setAddId] = useState('')
+
+  async function loadBundles() {
+    if (!id) return
+    const [lib, bun] = await Promise.all([listLibraryAssessments(), getRoleAssessments(id)])
+    setLibrary(lib)
+    setBundled(bun as BundledAssessment[])
+  }
+
+  async function addBundle() {
+    if (!id || !addId) return
+    await addAssessmentToRole(id, addId, { orderIndex: bundled.length })
+    setAddId('')
+    await loadBundles()
+  }
+
+  async function removeBundle(raId: string) {
+    await removeRoleAssessment(raId)
+    await loadBundles()
+  }
+
+  async function toggleRequired(ra: BundledAssessment) {
+    await updateRoleAssessment(ra.id, { is_required: !ra.is_required })
+    await loadBundles()
+  }
 
   useEffect(() => {
     if (!id) return
@@ -98,6 +136,7 @@ export default function Ruleset() {
       setLoading(false)
     }
     load()
+    loadBundles()
   }, [id])
 
   function addTag() {
@@ -416,6 +455,57 @@ export default function Ruleset() {
           </button>
         </div>
       </div>
+
+      {/* Bundled assessments from the library */}
+      <div style={styles.bundleCard}>
+        <p style={styles.cardLabel}>Assessments from library</p>
+        <p style={styles.cardHint}>
+          Bundle pre-built assessments into this role instead of writing everything from scratch.
+        </p>
+
+        {bundled.length > 0 ? (
+          <div style={styles.bundleList}>
+            {bundled.map(ra => (
+              <div key={ra.id} style={styles.bundleItem}>
+                <div style={styles.bundleMeta}>
+                  <span style={styles.bundleTitle}>
+                    {ra.library_assessments?.title ?? 'Unknown assessment'}
+                  </span>
+                  <span style={styles.bundleSub}>
+                    {ra.library_assessments?.skill_tag} · {ra.library_assessments?.difficulty}
+                  </span>
+                </div>
+                <label style={styles.requiredToggle}>
+                  <input type="checkbox" checked={ra.is_required} onChange={() => toggleRequired(ra)} />
+                  Required
+                </label>
+                <button onClick={() => removeBundle(ra.id)} style={styles.removeBundleBtn}>Remove</button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={styles.emptyTags}>No assessments bundled yet.</p>
+        )}
+
+        <div style={styles.addBundleRow}>
+          <select value={addId} onChange={e => setAddId(e.target.value)} style={styles.input}>
+            <option value="">Select an assessment to add…</option>
+            {library
+              .filter(a => !bundled.some(b => b.assessment_id === a.id))
+              .map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.title} ({a.skill_tag} · {a.difficulty})
+                </option>
+              ))}
+          </select>
+          <button onClick={addBundle} disabled={!addId} style={addId ? styles.addBtn : { ...styles.addBtn, opacity: 0.5 }}>
+            Add
+          </button>
+        </div>
+        <button onClick={() => navigate('/recruiter/library')} style={styles.libraryLink}>
+          Manage library →
+        </button>
+      </div>
     </div>
   )
 }
@@ -546,5 +636,32 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 14px', background: 'transparent', border: '1px dashed var(--color-border)',
     borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)',
     cursor: 'pointer', fontWeight: 'var(--weight-medium)',
+  },
+  bundleCard: {
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-md)',
+    marginTop: 'var(--space-5)',
+  },
+  bundleList: { display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' },
+  bundleItem: {
+    display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+    padding: '10px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-bg-tertiary)',
+  },
+  bundleMeta: { flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' },
+  bundleTitle: { fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--color-text-primary)' },
+  bundleSub: { fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' },
+  requiredToggle: {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap',
+  },
+  removeBundleBtn: {
+    background: 'none', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    color: 'var(--color-text-secondary)', fontSize: 'var(--text-xs)', cursor: 'pointer', padding: '5px 10px',
+  },
+  addBundleRow: { display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' },
+  libraryLink: {
+    background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 'var(--text-sm)',
+    cursor: 'pointer', padding: 0, fontWeight: 'var(--weight-medium)',
   },
 }

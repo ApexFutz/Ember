@@ -1,0 +1,8 @@
+# Minimal Supabase CLI config. Generated for migration tooling.
+project_id = "ember"
+
+[db]
+# Port used by `supabase start` for the local Postgres (Docker). Not required for
+# `supabase db push` against the linked remote.
+port = 54322
+major_version = 15
