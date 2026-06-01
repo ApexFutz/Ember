@@ -90,6 +90,69 @@ export async function getRoleAssessments(
   return (data ?? []) as any
 }
 
+/** Create a new reusable library assessment owned by the given recruiter. */
+export async function createLibraryAssessment(
+  input: {
+    skill_tag: string
+    difficulty: Difficulty
+    title: string
+    description?: string | null
+    estimated_time_minutes?: number | null
+    codebase?: unknown
+    problem_statement?: string | null
+    success_criteria?: string | null
+  },
+  createdBy: string,
+): Promise<LibraryAssessment> {
+  const { data, error } = await supabase
+    .from('library_assessments')
+    .insert({
+      skill_tag: input.skill_tag,
+      difficulty: input.difficulty,
+      title: input.title,
+      description: input.description ?? null,
+      estimated_time_minutes: input.estimated_time_minutes ?? null,
+      codebase: input.codebase ?? [],
+      problem_statement: input.problem_statement ?? null,
+      success_criteria: input.success_criteria ?? null,
+      created_by: createdBy,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as LibraryAssessment
+}
+
+/** Bundle a library assessment into a role. */
+export async function addAssessmentToRole(
+  roleId: string,
+  assessmentId: string,
+  opts: { isRequired?: boolean; orderIndex?: number } = {},
+): Promise<void> {
+  const { error } = await supabase.from('role_assessments').insert({
+    role_id: roleId,
+    assessment_id: assessmentId,
+    is_required: opts.isRequired ?? true,
+    order_index: opts.orderIndex ?? 0,
+  })
+  if (error) throw error
+}
+
+/** Update a bundling row (e.g. toggle required, reorder). */
+export async function updateRoleAssessment(
+  id: string,
+  patch: Partial<Pick<RoleAssessment, 'is_required' | 'order_index'>>,
+): Promise<void> {
+  const { error } = await supabase.from('role_assessments').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+/** Remove a library assessment from a role. */
+export async function removeRoleAssessment(id: string): Promise<void> {
+  const { error } = await supabase.from('role_assessments').delete().eq('id', id)
+  if (error) throw error
+}
+
 /** A candidate's global assessment history — the basis for cross-role dedup. */
 export async function getCandidateHistory(candidateId: string): Promise<CandidateAssessment[]> {
   const { data, error } = await supabase
