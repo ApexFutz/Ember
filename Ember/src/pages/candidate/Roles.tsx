@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -11,6 +11,8 @@ interface Role {
   department: string | null
   location: string
   description: string | null
+  salary_min: number | null
+  salary_max: number | null
   created_at: string
   profiles: {
     company_name: string | null
@@ -38,12 +40,32 @@ function formatTaskType(taskType: string) {
   return taskType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+const TASK_TYPES = ['build_a_feature', 'fix_a_bug', 'refactor_code', 'write_tests', 'other']
+const LOCATIONS = ['remote', 'hybrid', 'onsite']
+const COMP_THRESHOLDS = [50000, 100000, 150000, 200000] // "$Xk+" filter options
+
+function formatK(n: number) {
+  return `$${Math.round(n / 1000)}k`
+}
+
+function formatComp(min: number | null, max: number | null): string | null {
+  if (min && max) return `${formatK(min)}–${formatK(max)}`
+  if (min) return `${formatK(min)}+`
+  if (max) return `Up to ${formatK(max)}`
+  return null
+}
+
 export default function CandidateRoles() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const [roles, setRoles] = useState<Role[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [locationFilter, setLocationFilter] = useState('all')
+  const [taskTypeFilter, setTaskTypeFilter] = useState('all')
+  const [aiFilter, setAiFilter] = useState('all') // all | allowed | not_allowed
+  const [compFilter, setCompFilter] = useState('all') // 'all' | threshold string
 
   useEffect(() => {
     async function load() {
@@ -56,6 +78,8 @@ export default function CandidateRoles() {
           department,
           location,
           description,
+          salary_min,
+          salary_max,
           created_at,
           profiles (
             company_name,
@@ -105,6 +129,46 @@ export default function CandidateRoles() {
     navigate(`/assessment/${roleId}`)
   }
 
+  const filteredRoles = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return roles.filter(role => {
+      if (locationFilter !== 'all' && role.location !== locationFilter) return false
+      if (taskTypeFilter !== 'all' && role.rulesets?.task_type !== taskTypeFilter) return false
+      if (aiFilter !== 'all') {
+        const allowed = role.rulesets?.ai_allowed ?? false
+        if (aiFilter === 'allowed' && !allowed) return false
+        if (aiFilter === 'not_allowed' && allowed) return false
+      }
+      if (compFilter !== 'all') {
+        const threshold = Number(compFilter)
+        const top = role.salary_max ?? role.salary_min // best available upper signal
+        if (top == null || top < threshold) return false
+      }
+      if (q) {
+        const company = role.profiles?.company_name ?? role.profiles?.full_name ?? ''
+        const haystack = [
+          role.title,
+          company,
+          role.department ?? '',
+          role.description ?? '',
+          ...(role.rulesets?.stack_tags ?? []),
+        ].join(' ').toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
+      return true
+    })
+  }, [roles, search, locationFilter, taskTypeFilter, aiFilter, compFilter])
+
+  const filtersActive = search.trim() !== '' || locationFilter !== 'all' || taskTypeFilter !== 'all' || aiFilter !== 'all' || compFilter !== 'all'
+
+  function clearFilters() {
+    setSearch('')
+    setLocationFilter('all')
+    setTaskTypeFilter('all')
+    setAiFilter('all')
+    setCompFilter('all')
+  }
+
   if (loading) return (
     <div style={styles.page}>
       <div style={styles.header}>
@@ -137,14 +201,67 @@ export default function CandidateRoles() {
         </div>
       )}
 
+      {roles.length > 0 && (
+        <div style={styles.filterBar}>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search roles, companies, stack…"
+            style={styles.searchInput}
+          />
+          <div style={styles.filterControls}>
+            <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)} style={styles.select}>
+              <option value="all">All locations</option>
+              {LOCATIONS.map(l => (
+                <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>
+              ))}
+            </select>
+            <select value={taskTypeFilter} onChange={e => setTaskTypeFilter(e.target.value)} style={styles.select}>
+              <option value="all">All task types</option>
+              {TASK_TYPES.map(t => (
+                <option key={t} value={t}>{formatTaskType(t)}</option>
+              ))}
+            </select>
+            <select value={aiFilter} onChange={e => setAiFilter(e.target.value)} style={styles.select}>
+              <option value="all">Any AI policy</option>
+              <option value="allowed">AI allowed</option>
+              <option value="not_allowed">AI not allowed</option>
+            </select>
+            <select value={compFilter} onChange={e => setCompFilter(e.target.value)} style={styles.select}>
+              <option value="all">Any compensation</option>
+              {COMP_THRESHOLDS.map(t => (
+                <option key={t} value={t}>{formatK(t)}+</option>
+              ))}
+            </select>
+            {filtersActive && (
+              <button onClick={clearFilters} style={styles.clearBtn}>Clear</button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {roles.length > 0 && (
+        <p style={styles.resultCount}>
+          {filteredRoles.length} of {roles.length} role{roles.length !== 1 ? 's' : ''}
+        </p>
+      )}
+
       {roles.length === 0 ? (
         <EmptyState
           title="No active roles right now"
           message="Check back soon — new roles are added regularly."
         />
+      ) : filteredRoles.length === 0 ? (
+        <EmptyState
+          title="No roles match your filters"
+          message="Try adjusting your search or clearing the filters."
+          actionLabel="Clear filters"
+          onAction={clearFilters}
+        />
       ) : (
         <div style={styles.roleList}>
-          {roles.map(role => {
+          {filteredRoles.map(role => {
             const submitted = hasSubmitted(role.id)
             const profileComplete = isProfileComplete()
 
@@ -162,6 +279,11 @@ export default function CandidateRoles() {
                       {' · Posted '}
                       {formatDate(role.created_at)}
                     </p>
+                    {formatComp(role.salary_min, role.salary_max) && (
+                      <span style={styles.compBadge}>
+                        {formatComp(role.salary_min, role.salary_max)}
+                      </span>
+                    )}
                   </div>
 
                   {/* CTA button */}
@@ -267,6 +389,56 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-primary)',
     fontWeight: '600',
   },
+  filterBar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  searchInput: {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '11px 14px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '14px',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-secondary)',
+    outline: 'none',
+    fontFamily: 'var(--font-primary)',
+  },
+  filterControls: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    alignItems: 'center',
+  },
+  select: {
+    padding: '9px 12px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '13px',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-secondary)',
+    cursor: 'pointer',
+    outline: 'none',
+    fontWeight: '500',
+  },
+  clearBtn: {
+    padding: '9px 14px',
+    background: 'transparent',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '13px',
+    color: 'var(--color-text-secondary)',
+    cursor: 'pointer',
+    fontWeight: '500',
+  },
+  resultCount: {
+    fontSize: '12px',
+    color: 'var(--color-text-tertiary)',
+    margin: '0 0 16px',
+  },
   empty: {
     background: 'var(--color-bg-secondary)',
     border: '1px solid var(--color-border-light)',
@@ -296,6 +468,16 @@ const styles: Record<string, React.CSSProperties> = {
   roleTitle: { fontSize: '18px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)' },
   roleMeta: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.5' },
   locationBadge: { color: 'var(--color-text-primary)' },
+  compBadge: {
+    display: 'inline-block',
+    marginTop: '8px',
+    padding: '3px 10px',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    color: '#34d399',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: '600',
+  },
   description: {
     fontSize: '13px',
     color: 'var(--color-text-secondary)',
