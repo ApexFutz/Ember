@@ -65,6 +65,12 @@ export default function Replay() {
         setSubmission(subData)
         setNotes(subData.recruiter_notes ?? '')
 
+        // Mark this submission's replay as viewed (unlocks status changes on the dashboard).
+        await supabase
+          .from('submissions')
+          .update({ replay_viewed: true })
+          .eq('id', id)
+
         // Load scoring + metrics for this submission
         const { data: scoreData } = await supabase
           .from('submissions')

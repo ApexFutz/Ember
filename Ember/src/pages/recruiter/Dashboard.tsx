@@ -22,6 +22,7 @@ interface Submission {
   score: number | null
   tests_passed: number | null
   tests_total: number | null
+  replay_viewed: boolean
 }
 
 interface RoleGroup {
@@ -81,9 +82,24 @@ export default function RecruiterDashboard() {
       return
     }
 
+    // Fetch replay-viewed flags (not exposed on the view) and merge in.
+    const rows = data ?? []
+    const ids = rows.map((s: any) => s.id)
+    const viewed = new Set<string>()
+    if (ids.length > 0) {
+      const { data: flags } = await supabase
+        .from('submissions')
+        .select('id, replay_viewed')
+        .in('id', ids)
+      for (const f of flags ?? []) {
+        if (f.replay_viewed) viewed.add(f.id)
+      }
+    }
+    for (const s of rows) (s as any).replay_viewed = viewed.has(s.id)
+
     // Group by role
     const groups: Record<string, RoleGroup> = {}
-    for (const sub of (data ?? [])) {
+    for (const sub of rows) {
       if (!groups[sub.role_id]) {
         groups[sub.role_id] = {
           role_id: sub.role_id,
@@ -99,6 +115,11 @@ export default function RecruiterDashboard() {
   }
 
   async function updateStatus(submissionId: string, status: SubmissionStatus) {
+    // Gate: can't move a submission off "pending review" until the replay was opened.
+    const current = roleGroups.flatMap(g => g.submissions).find(s => s.id === submissionId)
+    if (current && current.status === 'pending_review' && status !== 'pending_review' && !current.replay_viewed) {
+      return
+    }
     setUpdatingId(submissionId)
 
     await supabase
@@ -315,18 +336,24 @@ export default function RecruiterDashboard() {
                               Message
                             </button>
 
-                            <select
-                              value={sub.status}
-                              onChange={e => updateStatus(sub.id, e.target.value as SubmissionStatus)}
-                              disabled={updatingId === sub.id}
-                              style={styles.statusSelect}
-                            >
-                              {statusOptions.map(opt => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
+                            {(() => {
+                              const locked = sub.status === 'pending_review' && !sub.replay_viewed
+                              return (
+                                <select
+                                  value={sub.status}
+                                  onChange={e => updateStatus(sub.id, e.target.value as SubmissionStatus)}
+                                  disabled={updatingId === sub.id || locked}
+                                  title={locked ? 'Watch the replay before changing this status' : ''}
+                                  style={locked ? { ...styles.statusSelect, opacity: 0.5, cursor: 'not-allowed' } : styles.statusSelect}
+                                >
+                                  {statusOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>
