@@ -89,6 +89,9 @@ export default function Login() {
                 required
                 style={styles.input}
               />
+              <Link to="/forgot-password" style={styles.forgotLink}>
+                Forgot password?
+              </Link>
             </div>
 
             <button
@@ -272,5 +275,13 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: 'none',
     fontWeight: '600',
     transition: 'color var(--transition-fast)',
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginTop: '2px',
+    fontSize: '12px',
+    color: 'var(--color-text-secondary)',
+    textDecoration: 'none',
+    fontWeight: '500',
   },
 }

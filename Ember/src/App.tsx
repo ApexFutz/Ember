@@ -4,6 +4,8 @@ import { useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
 import CandidateProfile from './pages/candidate/Profile'
 import RecruiterProfile from './pages/recruiter/Profile'
 import RecruiterRoles from './pages/recruiter/Roles.tsx'
@@ -40,6 +42,8 @@ function AppRoutes() {
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Assessment — fullscreen, completely standalone */}
       <Route path="/assessment/:roleId" element={
