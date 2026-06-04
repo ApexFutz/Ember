@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -21,6 +21,18 @@ export default function RecruiterRoles() {
   const navigate = useNavigate()
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+
+  const filteredRoles = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return roles
+    return roles.filter(role =>
+      [role.title, role.department ?? '', role.description ?? '', role.location, role.status]
+        .join(' ')
+        .toLowerCase()
+        .includes(q),
+    )
+  }, [roles, search])
 
   useEffect(() => {
     fetchRoles()
@@ -88,6 +100,16 @@ export default function RecruiterRoles() {
         </button>
       </div>
 
+      {roles.length > 0 && (
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search roles by title, department, location…"
+          style={styles.searchInput}
+        />
+      )}
+
       {roles.length === 0 ? (
         <div style={styles.empty}>
           <p style={styles.emptyTitle}>No roles yet</p>
@@ -101,9 +123,13 @@ export default function RecruiterRoles() {
             + Create your first role
           </button>
         </div>
+      ) : filteredRoles.length === 0 ? (
+        <div style={styles.noMatch}>
+          No roles match “{search.trim()}”.
+        </div>
       ) : (
         <div style={styles.list}>
-          {roles.map(role => (
+          {filteredRoles.map(role => (
             <div key={role.id} style={styles.card}>
               <div style={styles.cardTop}>
                 <div>
@@ -195,6 +221,28 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'var(--text-base)',
     color: 'var(--color-text-secondary)',
     padding: 'var(--space-10)',
+  },
+  searchInput: {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '11px 14px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-secondary)',
+    outline: 'none',
+    fontFamily: 'var(--font-primary)',
+    marginBottom: 'var(--space-4)',
+  },
+  noMatch: {
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
+    padding: 'var(--space-10)',
+    textAlign: 'center',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-text-secondary)',
   },
   empty: {
     background: 'var(--color-bg-secondary)',
