@@ -38,7 +38,6 @@ const styles: Record<string, React.CSSProperties> = {
   main: {
     flex: 1,
     minWidth: 0,
-    maxWidth: '720px',
   },
   rail: {
     width: '300px',
