@@ -82,6 +82,11 @@ html, body, #root {
   height: 100%;
 }
 
+/* Right context rail collapses on narrow viewports */
+@media (max-width: 1100px) {
+  .context-rail { display: none !important; }
+}
+
 body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
