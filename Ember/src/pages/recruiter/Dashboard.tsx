@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import EmptyState from '../../components/EmptyState.tsx'
+import { RailLayout, RailCard } from '../../components/RailLayout'
 
 type SubmissionStatus = 'pending_review' | 'reviewed' | 'moved_forward' | 'passed'
 
@@ -177,8 +178,83 @@ export default function RecruiterDashboard() {
 
   if (loading) return <div style={styles.loading}>Loading submissions...</div>
 
+  // ── Rail data (computed from already-loaded submissions) ──
+  const funnel = statusOptions.map(o => ({
+    ...o,
+    count: allSubmissions.filter(s => s.status === o.value).length,
+  }))
+  const needsAttention = allSubmissions.filter(s => s.status === 'pending_review' && !s.replay_viewed)
+  const topRoles = [...roleGroups]
+    .sort((a, b) => b.submissions.length - a.submissions.length)
+    .slice(0, 4)
+  const maxFunnel = Math.max(1, ...funnel.map(f => f.count))
+
+  const rail = totalCount > 0 ? (
+    <>
+      <RailCard title="Pipeline">
+        <div style={styles.funnel}>
+          {funnel.map(f => (
+            <div key={f.value} style={styles.funnelRow}>
+              <div style={styles.funnelHead}>
+                <span style={styles.funnelLabel}>{f.label}</span>
+                <span style={styles.funnelCount}>{f.count}</span>
+              </div>
+              <div style={styles.funnelTrack}>
+                <div style={{ ...styles.funnelBar, width: `${(f.count / maxFunnel) * 100}%`, backgroundColor: f.color }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </RailCard>
+
+      <RailCard title="Needs your attention">
+        {needsAttention.length === 0 ? (
+          <p style={styles.railEmpty}>All caught up — every pending submission has been reviewed.</p>
+        ) : (
+          <>
+            <p style={styles.railBig}>
+              <span style={styles.railBigNum}>{needsAttention.length}</span> awaiting your replay
+            </p>
+            <div style={styles.railList}>
+              {needsAttention.slice(0, 3).map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => navigate(`/recruiter/submissions/${s.id}/replay`)}
+                  style={styles.railRowBtn}
+                >
+                  <span style={styles.railRowName}>{s.candidate_name ?? 'Candidate'}</span>
+                  <span style={styles.railRowSub}>{s.role_title}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </RailCard>
+
+      {topRoles.length > 0 && (
+        <RailCard title="Top roles">
+          <div style={styles.railList}>
+            {topRoles.map(g => (
+              <div key={g.role_id} style={styles.railRow}>
+                <span style={styles.railRowName}>{g.role_title}</span>
+                <span style={styles.railRowSub}>{g.submissions.length}</span>
+              </div>
+            ))}
+          </div>
+        </RailCard>
+      )}
+
+      <RailCard title="Quick actions">
+        <div style={styles.railActions}>
+          <button onClick={() => navigate('/recruiter/roles/new')} style={styles.railActionPrimary}>+ New role</button>
+          <button onClick={() => navigate('/recruiter/library')} style={styles.railAction}>Assessment library</button>
+        </div>
+      </RailCard>
+    </>
+  ) : null
+
   return (
-    <div style={styles.page}>
+    <RailLayout rail={rail}>
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Dashboard</h1>
@@ -365,7 +441,7 @@ export default function RecruiterDashboard() {
           )}
         </>
       )}
-    </div>
+    </RailLayout>
   )
 }
 
@@ -528,4 +604,23 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '500',
     transition: 'all var(--transition-fast)',
   },
+  // Rail widgets
+  funnel: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  funnelRow: { display: 'flex', flexDirection: 'column', gap: '5px' },
+  funnelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  funnelLabel: { fontSize: '12px', color: 'var(--color-text-secondary)' },
+  funnelCount: { fontSize: '12px', fontWeight: '600', color: 'var(--color-text-primary)' },
+  funnelTrack: { height: '6px', borderRadius: '999px', backgroundColor: 'var(--color-bg-tertiary)', overflow: 'hidden' },
+  funnelBar: { height: '100%', borderRadius: '999px', minWidth: '2px' },
+  railEmpty: { fontSize: '12px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 },
+  railBig: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 12px' },
+  railBigNum: { fontSize: '20px', fontWeight: '700', color: 'var(--color-primary)', fontFamily: 'var(--font-display)' },
+  railList: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  railRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  railRowBtn: { display: 'flex', flexDirection: 'column', gap: '2px', background: 'none', border: 'none', padding: '6px 8px', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left', width: '100%' },
+  railRowName: { fontSize: '13px', fontWeight: '500', color: 'var(--color-text-primary)' },
+  railRowSub: { fontSize: '12px', color: 'var(--color-text-secondary)' },
+  railActions: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  railActionPrimary: { padding: '9px 14px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  railAction: { padding: '9px 14px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '500', color: 'var(--color-text-secondary)', cursor: 'pointer' },
 }
