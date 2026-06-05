@@ -1,4 +1,4 @@
-export type StarterTemplate = 'blank' | 'react_component' | 'node_api'
+export type StarterTemplate = 'blank' | 'react_component' | 'node_api' | 'bugfix_repo'
 
 export interface StarterFile {
   name: string
@@ -44,6 +44,46 @@ export default function App() {
   font-family: sans-serif;
   padding: 24px;
 }
+`,
+      },
+    ],
+  },
+  {
+    value: 'bugfix_repo',
+    label: 'Bug-fix repo (multi-file)',
+    description: 'A small interlinked JS codebase with a planted bug',
+    files: [
+      {
+        name: 'money.js',
+        content: `// Currency helpers used across the cart.
+function formatUSD(cents) {
+  return '$' + (cents / 100).toFixed(2)
+}
+
+function applyDiscount(cents, percent) {
+  // BUG: discount is applied as a flat amount, not a percentage.
+  return cents - percent
+}
+`,
+      },
+      {
+        name: 'cart.js',
+        content: `// Cart total. Uses helpers from money.js (shared scope at runtime).
+function cartTotal(items, discountPercent) {
+  const subtotal = items.reduce((sum, it) => sum + it.priceCents * it.qty, 0)
+  return applyDiscount(subtotal, discountPercent)
+}
+`,
+      },
+      {
+        name: 'main.js',
+        content: `// Example usage. Fix cartTotal so the discount is a real percentage.
+const items = [
+  { priceCents: 1000, qty: 2 }, // $20.00
+  { priceCents: 500, qty: 1 },  // $5.00
+]
+// 10% off $25.00 should be $22.50
+console.log(formatUSD(cartTotal(items, 10)))
 `,
       },
     ],
