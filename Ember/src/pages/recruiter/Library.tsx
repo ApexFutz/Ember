@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import EmptyState from '../../components/EmptyState'
+import { RailLayout, RailCard } from '../../components/RailLayout'
 import {
   DIFFICULTIES,
   listLibraryAssessments,
@@ -84,8 +85,43 @@ export default function Library() {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
+  const skillCounts = Object.entries(
+    items.reduce<Record<string, number>>((acc, a) => {
+      acc[a.skill_tag] = (acc[a.skill_tag] ?? 0) + 1
+      return acc
+    }, {}),
+  ).sort((a, b) => b[1] - a[1]).slice(0, 6)
+
+  const rail = items.length > 0 ? (
+    <>
+      <RailCard title="By difficulty">
+        <div style={styles.railList}>
+          {DIFFICULTIES.map(d => (
+            <div key={d} style={styles.railRow}>
+              <span style={{ ...styles.railDot, backgroundColor: difficultyColors[d].color }} />
+              <span style={styles.railRowName}>{d}</span>
+              <span style={styles.railRowNum}>{items.filter(a => a.difficulty === d).length}</span>
+            </div>
+          ))}
+        </div>
+      </RailCard>
+      {skillCounts.length > 0 && (
+        <RailCard title="By skill">
+          <div style={styles.railList}>
+            {skillCounts.map(([tag, count]) => (
+              <div key={tag} style={styles.railRow}>
+                <span style={styles.railRowName}>{tag}</span>
+                <span style={styles.railRowNum}>{count}</span>
+              </div>
+            ))}
+          </div>
+        </RailCard>
+      )}
+    </>
+  ) : null
+
   return (
-    <div style={styles.page}>
+    <RailLayout rail={rail}>
       <div style={styles.headerRow}>
         <div>
           <h1 style={styles.title}>Assessment Library</h1>
@@ -182,7 +218,7 @@ export default function Library() {
           })}
         </div>
       )}
-    </div>
+    </RailLayout>
   )
 }
 
@@ -213,4 +249,9 @@ const styles: Record<string, React.CSSProperties> = {
   skillTag: { fontSize: '12px', padding: '3px 10px', backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', borderRadius: '999px', color: 'var(--color-text-primary)', fontWeight: '500' },
   metaText: { fontSize: '12px', color: 'var(--color-text-secondary)' },
   cardDesc: { fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 },
+  railList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  railRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+  railDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  railRowName: { flex: 1, fontSize: '13px', color: 'var(--color-text-primary)' },
+  railRowNum: { fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)' },
 }

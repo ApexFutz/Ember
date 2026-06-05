@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import EmptyState from '../../components/EmptyState'
 import SkeletonCard from '../../components/SkeletonCard'
+import { RailLayout, RailCard } from '../../components/RailLayout'
 import type { Tier } from '../../lib/skills'
 
 interface CandidateSkill {
@@ -68,8 +69,38 @@ export default function CandidateSkills() {
     </div>
   )
 
+  const tierBreakdown = (['advanced', 'intermediate', 'beginner'] as Tier[]).map(t => ({
+    tier: t,
+    label: tierConfig[t].label,
+    color: tierConfig[t].color,
+    count: skills.filter(s => s.tier === t).length,
+  }))
+
+  const rail = skills.length > 0 ? (
+    <>
+      <RailCard title="Proficiency">
+        <p style={styles.railBig}>
+          <span style={styles.railBigNum}>{skills.length}</span> skill{skills.length !== 1 ? 's' : ''} tracked
+        </p>
+        <div style={styles.railList}>
+          {tierBreakdown.map(t => (
+            <div key={t.tier} style={styles.railRow}>
+              <span style={{ ...styles.railDot, backgroundColor: t.color }} />
+              <span style={styles.railRowName}>{t.label}</span>
+              <span style={styles.railRowNum}>{t.count}</span>
+            </div>
+          ))}
+        </div>
+      </RailCard>
+      <RailCard title="Level up">
+        <p style={styles.railNote}>Complete recruiter assessments or generate practice to raise your tiers.</p>
+        <button onClick={() => navigate('/candidate/roles')} style={styles.railAction}>Browse open roles</button>
+      </RailCard>
+    </>
+  ) : null
+
   return (
-    <div style={styles.page}>
+    <RailLayout rail={rail}>
       <div style={styles.headerRow}>
         <div>
           <h1 style={styles.title}>Skills</h1>
@@ -129,7 +160,7 @@ export default function CandidateSkills() {
           })}
         </div>
       )}
-    </div>
+    </RailLayout>
   )
 }
 
@@ -180,4 +211,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardBottom: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   metaText: { fontSize: '12px', color: 'var(--color-text-secondary)' },
+  railBig: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 12px' },
+  railBigNum: { fontSize: '20px', fontWeight: 700, color: 'var(--color-primary)', fontFamily: 'var(--font-display)' },
+  railList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  railRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+  railDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  railRowName: { flex: 1, fontSize: '13px', color: 'var(--color-text-primary)' },
+  railRowNum: { fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)' },
+  railNote: { fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: '0 0 12px' },
+  railAction: { padding: '9px 14px', width: '100%', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', cursor: 'pointer' },
 }
