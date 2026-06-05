@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import EmptyState from '../../components/EmptyState.tsx'
 import SkeletonCard from '../../components/SkeletonCard.tsx'
+import { RailLayout, RailCard } from '../../components/RailLayout'
 
 interface Role {
   id: string
@@ -180,8 +181,34 @@ export default function CandidateRoles() {
     </div>
   )
 
+  const profileComplete = isProfileComplete()
+  const rail = roles.length > 0 ? (
+    <>
+      <RailCard title="Your profile">
+        {profileComplete ? (
+          <p style={styles.railNote}><span style={styles.railOk}>✓</span> Profile complete — you're ready to apply.</p>
+        ) : (
+          <>
+            <p style={styles.railNote}>Add a headline, bio, and a skill to start assessments.</p>
+            <button onClick={() => navigate('/candidate/profile')} style={styles.railActionPrimary}>Complete profile</button>
+          </>
+        )}
+      </RailCard>
+      <RailCard title="Your activity">
+        <p style={styles.railBig}>
+          <span style={styles.railBigNum}>{submissions.length}</span> assessment{submissions.length !== 1 ? 's' : ''} submitted
+        </p>
+        <button onClick={() => navigate('/candidate/assessments')} style={styles.railAction}>View my assessments</button>
+      </RailCard>
+      <RailCard title="Sharpen your skills">
+        <p style={styles.railNote}>Practice generated tasks to build your skill profile.</p>
+        <button onClick={() => navigate('/candidate/skills')} style={styles.railAction}>Go to skills</button>
+      </RailCard>
+    </>
+  ) : null
+
   return (
-    <div style={styles.page}>
+    <RailLayout rail={rail}>
       <div style={styles.header}>
         <h1 style={styles.title}>Open Roles</h1>
         <p style={styles.subtitle}>
@@ -364,7 +391,7 @@ export default function CandidateRoles() {
           })}
         </div>
       )}
-    </div>
+    </RailLayout>
   )
 }
 
@@ -575,4 +602,10 @@ const styles: Record<string, React.CSSProperties> = {
     paddingTop: '16px',
     borderTop: '1px solid var(--color-border-light)',
   },
+  railNote: { fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: '0 0 12px' },
+  railOk: { color: 'var(--color-success)', fontWeight: 700 },
+  railBig: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 12px' },
+  railBigNum: { fontSize: '20px', fontWeight: 700, color: 'var(--color-primary)', fontFamily: 'var(--font-display)' },
+  railActionPrimary: { padding: '9px 14px', width: '100%', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' },
+  railAction: { padding: '9px 14px', width: '100%', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', cursor: 'pointer' },
 }

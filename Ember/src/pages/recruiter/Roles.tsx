@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { RailLayout, RailCard } from '../../components/RailLayout'
 
 type RoleStatus = 'draft' | 'active' | 'archived'
 type LocationType = 'remote' | 'hybrid' | 'onsite'
@@ -83,8 +84,39 @@ export default function RecruiterRoles() {
 
   if (loading) return <div style={styles.loading}>Loading roles...</div>
 
+  const statusCounts = {
+    active: roles.filter(r => r.status === 'active').length,
+    draft: roles.filter(r => r.status === 'draft').length,
+    archived: roles.filter(r => r.status === 'archived').length,
+  }
+
+  const rail = roles.length > 0 ? (
+    <>
+      <RailCard title="Role status">
+        <div style={styles.railList}>
+          {(['active', 'draft', 'archived'] as RoleStatus[]).map(s => (
+            <div key={s} style={styles.railRow}>
+              <span style={{
+                ...styles.railDot,
+                backgroundColor: statusColors[s].color,
+              }} />
+              <span style={styles.railRowName}>{s.charAt(0).toUpperCase() + s.slice(1)}</span>
+              <span style={styles.railRowNum}>{statusCounts[s]}</span>
+            </div>
+          ))}
+        </div>
+      </RailCard>
+      <RailCard title="Quick actions">
+        <div style={styles.railActions}>
+          <button onClick={() => navigate('/recruiter/roles/new')} style={styles.railActionPrimary}>+ New role</button>
+          <button onClick={() => navigate('/recruiter/library')} style={styles.railAction}>Assessment library</button>
+        </div>
+      </RailCard>
+    </>
+  ) : null
+
   return (
-    <div style={styles.page}>
+    <RailLayout rail={rail}>
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Roles</h1>
@@ -179,7 +211,7 @@ export default function RecruiterRoles() {
           ))}
         </div>
       )}
-    </div>
+    </RailLayout>
   )
 }
 
@@ -325,4 +357,12 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontWeight: 'var(--weight-medium)',
   },
+  railList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  railRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+  railDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  railRowName: { flex: 1, fontSize: '13px', color: 'var(--color-text-primary)' },
+  railRowNum: { fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)' },
+  railActions: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  railActionPrimary: { padding: '9px 14px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  railAction: { padding: '9px 14px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '500', color: 'var(--color-text-secondary)', cursor: 'pointer' },
 }
