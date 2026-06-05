@@ -14,6 +14,9 @@ interface Ruleset {
   ai_allowed: boolean
   starter_template: string
   tests: { name: string; content: string; hidden: boolean }[]
+  issue_title: string | null
+  problem_statement: string | null
+  codebase: FileTab[] | null
 }
 
 interface Role {
@@ -104,9 +107,12 @@ useEffect(() => {
       if (rulesetData) {
         setRuleset(rulesetData)
         setTimeLeft(rulesetData.time_limit_mins * 60)
-        const templateFiles = getTemplateFiles(rulesetData.starter_template)
-        setFiles(templateFiles)
-        setActiveFile(templateFiles[0].name)
+        // Prefer the authored multi-file codebase; fall back to the starter template.
+        const seeded = Array.isArray(rulesetData.codebase) && rulesetData.codebase.length > 0
+          ? (rulesetData.codebase as FileTab[])
+          : getTemplateFiles(rulesetData.starter_template)
+        setFiles(seeded)
+        setActiveFile(seeded[0].name)
       }
 
       setLoading(false)
@@ -374,9 +380,10 @@ useEffect(() => {
 
         <div style={styles.startDivider} />
 
-        <p style={styles.startSectionLabel}>What you'll be asked to do</p>
+        <p style={styles.startSectionLabel}>{ruleset?.issue_title ? 'The issue' : "What you'll be asked to do"}</p>
+        {ruleset?.issue_title && <p style={styles.startIssueTitle}>{ruleset.issue_title}</p>}
         <p style={styles.startDescription}>
-          {ruleset?.task_description ?? 'No task description provided.'}
+          {ruleset?.problem_statement || ruleset?.task_description || 'No task description provided.'}
         </p>
 
         <div style={styles.startMeta}>
@@ -502,11 +509,12 @@ useEffect(() => {
             </button>
           )}
 
-          {/* Task reference */}
+          {/* Issue reference */}
           <div style={styles.taskPanel}>
-            <p style={styles.taskPanelLabel}>Task</p>
+            <p style={styles.taskPanelLabel}>{ruleset?.issue_title ? 'Issue' : 'Task'}</p>
+            {ruleset?.issue_title && <p style={styles.issuePanelTitle}>{ruleset.issue_title}</p>}
             <p style={styles.taskPanelText}>
-              {ruleset?.task_description}
+              {ruleset?.problem_statement || ruleset?.task_description}
             </p>
             <div style={styles.taskTags}>
               {ruleset?.stack_tags?.map(tag => (
@@ -628,11 +636,19 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-tertiary)',
     margin: '0 0 10px',
   },
+  startIssueTitle: {
+    fontSize: 'var(--text-lg)',
+    fontWeight: 'var(--weight-semibold)',
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-display)',
+    margin: '0 0 8px',
+  },
   startDescription: {
     fontSize: 'var(--text-base)',
     color: 'var(--color-text-primary)',
     lineHeight: '1.7',
     margin: '0 0 24px',
+    whiteSpace: 'pre-wrap',
   },
   startMeta: {
     display: 'grid',
@@ -873,11 +889,19 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-tertiary)',
     margin: '0 0 8px',
   },
+  issuePanelTitle: {
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-semibold)',
+    color: 'var(--color-text-primary)',
+    margin: '0 0 6px',
+    lineHeight: '1.4',
+  },
   taskPanelText: {
     fontSize: 'var(--text-xs)',
     color: 'var(--color-text-secondary)',
     lineHeight: '1.6',
     margin: '0 0 10px',
+    whiteSpace: 'pre-wrap',
   },
   taskTags: {
     display: 'flex',

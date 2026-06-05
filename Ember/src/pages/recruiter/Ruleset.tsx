@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { STARTER_TEMPLATES, type StarterTemplate } from '../../lib/starterTemplates'
+import { STARTER_TEMPLATES, getTemplateFiles, type StarterTemplate } from '../../lib/starterTemplates'
 import type { Runtime, TestCase } from '../../lib/testHarness'
+import CodebaseEditor, { type CodeFile } from '../../components/CodebaseEditor'
 import {
   listLibraryAssessments,
   getRoleAssessments,
@@ -27,6 +28,9 @@ interface RulesetForm {
   starter_template: StarterTemplate
   runtime: Runtime
   tests: TestCase[]
+  issue_title: string
+  problem_statement: string
+  codebase: CodeFile[]
 }
 
 const runtimeOptions: { value: Runtime; label: string }[] = [
@@ -67,6 +71,9 @@ export default function Ruleset() {
     starter_template: 'blank',
     runtime: 'node',
     tests: [],
+    issue_title: '',
+    problem_statement: '',
+    codebase: [],
   })
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -130,6 +137,9 @@ export default function Ruleset() {
           starter_template: rulesetData.starter_template ?? 'blank',
           runtime: rulesetData.runtime ?? 'node',
           tests: rulesetData.tests ?? [],
+          issue_title: rulesetData.issue_title ?? '',
+          problem_statement: rulesetData.problem_statement ?? '',
+          codebase: rulesetData.codebase ?? [],
         })
       }
 
@@ -196,6 +206,9 @@ export default function Ruleset() {
         starter_template: form.starter_template,
         runtime: form.runtime,
         tests: form.tests,
+        issue_title: form.issue_title,
+        problem_statement: form.problem_statement,
+        codebase: form.codebase,
       }, { onConflict: 'role_id' })
 
     if (saveError) {
@@ -369,6 +382,29 @@ export default function Ruleset() {
             <p style={styles.charCount}>{form.task_description.length}/500</p>
           </div>
 
+          {/* Issue */}
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Issue</p>
+            <p style={styles.cardHint}>
+              A GitHub-issue-style brief shown inside the assessment — what's broken or needed, and any
+              context. This is the candidate's main reference.
+            </p>
+            <input
+              type="text"
+              value={form.issue_title}
+              onChange={e => setForm(prev => ({ ...prev, issue_title: e.target.value }))}
+              placeholder="Issue title — e.g. Cart total ignores discount codes"
+              style={{ ...styles.input, marginBottom: 'var(--space-2)' }}
+            />
+            <textarea
+              value={form.problem_statement}
+              onChange={e => setForm(prev => ({ ...prev, problem_statement: e.target.value }))}
+              placeholder={'Describe the issue in detail — reproduction steps, expected vs actual behaviour, which files are involved, and the acceptance criteria.'}
+              style={styles.textarea}
+              rows={6}
+            />
+          </div>
+
           {/* AI policy */}
           <div style={styles.card}>
             <p style={styles.cardLabel}>AI usage policy</p>
@@ -454,6 +490,29 @@ export default function Ruleset() {
             {saving ? 'Saving...' : 'Save ruleset'}
           </button>
         </div>
+      </div>
+
+      {/* Codebase */}
+      <div style={styles.bundleCard}>
+        <div style={styles.codebaseHead}>
+          <div>
+            <p style={styles.cardLabel}>Codebase</p>
+            <p style={styles.cardHint}>
+              The multi-file repo the candidate opens to resolve the issue. Files share one scope at
+              runtime, so helpers in one file are usable from another.
+            </p>
+          </div>
+          <button
+            onClick={() => setForm(prev => ({ ...prev, codebase: getTemplateFiles(prev.starter_template).map(f => ({ ...f })) }))}
+            style={styles.addTestBtn}
+          >
+            Load from template
+          </button>
+        </div>
+        <CodebaseEditor
+          files={form.codebase}
+          onChange={files => setForm(prev => ({ ...prev, codebase: files }))}
+        />
       </div>
 
       {/* Bundled assessments from the library */}
@@ -642,6 +701,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-md)',
     marginTop: 'var(--space-5)',
   },
+  codebaseHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', marginBottom: 'var(--space-3)' },
   bundleList: { display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' },
   bundleItem: {
     display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
