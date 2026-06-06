@@ -33,16 +33,16 @@ interface RoleGroup {
 }
 
 const statusOptions: { value: SubmissionStatus; label: string; color: string; bg: string }[] = [
-  { value: 'pending_review', label: 'Pending review', color: '#fb923c', bg: 'rgba(249, 115, 22, 0.12)' },
-  { value: 'reviewed', label: 'Reviewed', color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.12)' },
-  { value: 'moved_forward', label: 'Moved forward', color: '#34d399', bg: 'rgba(16, 185, 129, 0.12)' },
-  { value: 'passed', label: 'Passed', color: '#9a9aa8', bg: 'rgba(154, 154, 168, 0.12)' },
+  { value: 'pending_review', label: 'Pending review', color: 'var(--color-primary-light)', bg: 'var(--color-primary-soft)' },
+  { value: 'reviewed', label: 'Reviewed', color: 'var(--color-info-text)', bg: 'var(--color-info-soft)' },
+  { value: 'moved_forward', label: 'Moved forward', color: 'var(--color-success-text)', bg: 'var(--color-success-soft)' },
+  { value: 'passed', label: 'Passed', color: 'var(--color-text-secondary)', bg: 'var(--color-neutral-soft)' },
 ]
 
 const availabilityColors: Record<string, string> = {
-  available: '#34d399',
-  open: '#fb923c',
-  not_looking: '#9a9aa8',
+  available: 'var(--color-success-text)',
+  open: 'var(--color-primary-light)',
+  not_looking: 'var(--color-text-secondary)',
 }
 
 const availabilityLabels: Record<string, string> = {
@@ -389,8 +389,8 @@ export default function RecruiterDashboard() {
                               <span style={{
                                 ...styles.statusBadge,
                                 ...((sub.score ?? 0) >= 1
-                                  ? { color: '#34d399', backgroundColor: 'rgba(16, 185, 129, 0.12)' }
-                                  : { color: '#fb923c', backgroundColor: 'rgba(249, 115, 22, 0.12)' }),
+                                  ? { color: 'var(--color-success-text)', backgroundColor: 'var(--color-success-soft)' }
+                                  : { color: 'var(--color-primary-light)', backgroundColor: 'var(--color-primary-soft)' }),
                               }}>
                                 {sub.tests_passed}/{sub.tests_total} tests · {Math.round((sub.score ?? 0) * 100)}%
                               </span>
@@ -503,7 +503,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tabBadge: {
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     fontSize: '11px',
     fontWeight: '600',
     padding: '2px 8px',
@@ -561,7 +561,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   avatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  avatarInitial: { fontSize: '15px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-display)' },
+  avatarInitial: { fontSize: '15px', fontWeight: '600', color: 'var(--color-on-primary)', fontFamily: 'var(--font-display)' },
   candidateName: { fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 4px' },
   candidateHeadline: { fontSize: '12px', color: 'var(--color-text-secondary)', margin: 0 },
   subRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' },
@@ -621,6 +621,6 @@ const styles: Record<string, React.CSSProperties> = {
   railRowName: { fontSize: '13px', fontWeight: '500', color: 'var(--color-text-primary)' },
   railRowSub: { fontSize: '12px', color: 'var(--color-text-secondary)' },
   railActions: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  railActionPrimary: { padding: '9px 14px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  railActionPrimary: { padding: '9px 14px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
   railAction: { padding: '9px 14px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '500', color: 'var(--color-text-secondary)', cursor: 'pointer' },
 }

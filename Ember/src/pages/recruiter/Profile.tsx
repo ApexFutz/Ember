@@ -254,21 +254,21 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
   },
   error: {
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
+    background: 'var(--color-error-soft)',
+    border: '1px solid var(--color-error-soft)',
     borderRadius: 'var(--radius-md)',
     padding: '12px 16px',
     fontSize: '13px',
-    color: '#fca5a5',
+    color: 'var(--color-error-text)',
     marginBottom: '24px',
   },
   success: {
-    background: 'rgba(16, 185, 129, 0.1)',
-    border: '1px solid rgba(16, 185, 129, 0.2)',
+    background: 'var(--color-success-soft)',
+    border: '1px solid var(--color-success-soft)',
     borderRadius: 'var(--radius-md)',
     padding: '12px 16px',
     fontSize: '13px',
-    color: '#6ee7b7',
+    color: 'var(--color-success-text)',
     marginBottom: '24px',
   },
   grid: {
@@ -327,7 +327,7 @@ const styles: Record<string, React.CSSProperties> = {
   photoInitial: {
     fontSize: '28px',
     fontWeight: '600',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     fontFamily: 'var(--font-display)',
   },
   uploadBtn: {
@@ -396,14 +396,14 @@ const styles: Record<string, React.CSSProperties> = {
   saveBtn: {
     padding: '12px 16px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
     width: '100%',
-    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
+    boxShadow: 'var(--shadow-primary)',
     transition: 'all var(--transition-fast)',
   },
 }

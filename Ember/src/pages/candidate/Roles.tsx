@@ -402,12 +402,12 @@ const styles: Record<string, React.CSSProperties> = {
   title: { fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: '14px', color: 'var(--color-text-secondary)', margin: 0 },
   profileWarning: {
-    background: 'rgba(245, 158, 11, 0.1)',
-    border: '1px solid rgba(245, 158, 11, 0.2)',
+    background: 'var(--color-warning-soft)',
+    border: '1px solid var(--color-warning-soft)',
     borderRadius: 'var(--radius-md)',
     padding: '14px 16px',
     fontSize: '13px',
-    color: '#fbbf24',
+    color: 'var(--color-warning-text)',
     marginBottom: '24px',
     lineHeight: '1.6',
   },
@@ -499,8 +499,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-block',
     marginTop: '8px',
     padding: '3px 10px',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    color: '#34d399',
+    backgroundColor: 'var(--color-success-soft)',
+    color: 'var(--color-success-text)',
     borderRadius: '999px',
     fontSize: '12px',
     fontWeight: '600',
@@ -514,7 +514,7 @@ const styles: Record<string, React.CSSProperties> = {
   startBtn: {
     padding: '10px 20px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: '13px',
@@ -522,7 +522,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     flexShrink: 0,
-    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
+    boxShadow: 'var(--shadow-primary)',
     transition: 'all var(--transition-fast)',
   },
   startBtnDisabled: {
@@ -588,8 +588,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
   },
   aiBadgeAllowed: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    color: '#fbbf24',
+    backgroundColor: 'var(--color-warning-soft)',
+    color: 'var(--color-warning-text)',
   },
   aiBadgeNotAllowed: {
     backgroundColor: 'var(--color-bg-tertiary)',
@@ -606,6 +606,6 @@ const styles: Record<string, React.CSSProperties> = {
   railOk: { color: 'var(--color-success)', fontWeight: 700 },
   railBig: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 12px' },
   railBigNum: { fontSize: '20px', fontWeight: 700, color: 'var(--color-primary)', fontFamily: 'var(--font-display)' },
-  railActionPrimary: { padding: '9px 14px', width: '100%', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' },
+  railActionPrimary: { padding: '9px 14px', width: '100%', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' },
   railAction: { padding: '9px 14px', width: '100%', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', cursor: 'pointer' },
 }

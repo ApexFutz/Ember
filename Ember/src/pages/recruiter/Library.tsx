@@ -11,10 +11,10 @@ import {
 } from '../../lib/assessmentLibrary'
 
 const difficultyColors: Record<Difficulty, { color: string; bg: string }> = {
-  Beginner: { color: '#34d399', bg: 'rgba(16, 185, 129, 0.12)' },
-  Intermediate: { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
-  Advanced: { color: '#fb923c', bg: 'rgba(249, 115, 22, 0.15)' },
-  Expert: { color: '#f87171', bg: 'rgba(239, 68, 68, 0.15)' },
+  Beginner: { color: 'var(--color-success-text)', bg: 'var(--color-success-soft)' },
+  Intermediate: { color: 'var(--color-info-text)', bg: 'var(--color-info-soft)' },
+  Advanced: { color: 'var(--color-primary-light)', bg: 'var(--color-primary-soft)' },
+  Expert: { color: 'var(--color-error-text)', bg: 'var(--color-error-soft)' },
 }
 
 const emptyForm = {
@@ -228,15 +228,15 @@ const styles: Record<string, React.CSSProperties> = {
   headerRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' },
   title: { fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: '14px', color: 'var(--color-text-secondary)', margin: 0 },
-  newBtn: { padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
-  error: { background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px', color: 'var(--color-error)', marginBottom: '16px' },
+  newBtn: { padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+  error: { background: 'var(--color-error-soft)', border: '1px solid var(--color-error-soft)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px', color: 'var(--color-error)', marginBottom: '16px' },
   formCard: { background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-md)', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' },
   formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' },
   field: { display: 'flex', flexDirection: 'column', gap: '6px' },
   label: { fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-secondary)' },
   input: { padding: '10px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-tertiary)', outline: 'none', width: '100%', boxSizing: 'border-box' },
   textarea: { padding: '10px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-tertiary)', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'var(--font-primary)', lineHeight: 1.5 },
-  saveBtn: { padding: '12px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer', alignSelf: 'flex-start', paddingLeft: '24px', paddingRight: '24px' },
+  saveBtn: { padding: '12px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer', alignSelf: 'flex-start', paddingLeft: '24px', paddingRight: '24px' },
   filterRow: { display: 'flex', gap: '8px', marginBottom: '16px' },
   filterInput: { flex: 1, padding: '9px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-secondary)', outline: 'none' },
   select: { padding: '9px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-secondary)', cursor: 'pointer', outline: 'none', fontWeight: '500' },

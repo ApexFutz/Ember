@@ -586,12 +586,12 @@ const styles: Record<string, React.CSSProperties> = {
   title: { fontSize: 'var(--text-3xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 var(--space-2)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: 'var(--text-base)', color: 'var(--color-text-secondary)', margin: 0 },
   error: {
-    background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
+    background: 'var(--color-error-soft)', border: '1px solid var(--color-error-soft)',
     borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px',
     color: 'var(--color-error)', marginBottom: '20px',
   },
   success: {
-    background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)',
+    background: 'var(--color-success-soft)', border: '1px solid var(--color-success-soft)',
     borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px',
     color: 'var(--color-success)', marginBottom: '20px',
   },
@@ -610,7 +610,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '11px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
     background: 'var(--color-bg-tertiary)', cursor: 'pointer', textAlign: 'left', transition: 'all var(--transition-fast)',
   },
-  taskOptionActive: { borderColor: 'var(--color-primary)', backgroundColor: 'rgba(249, 115, 22, 0.1)' },
+  taskOptionActive: { borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-primary-soft)' },
   taskOptionLabel: { fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--color-text-primary)' },
   taskOptionDesc: { fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' },
   timeOptions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' },
@@ -621,8 +621,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-secondary)', transition: 'all var(--transition-fast)',
   },
   timeOptionActive: {
-    borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-primary)', color: '#fff',
-    boxShadow: '0 2px 8px rgba(249, 115, 22, 0.25)',
+    borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)',
+    boxShadow: 'var(--shadow-primary)',
   },
   tagInputRow: { display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' },
   input: {
@@ -631,13 +631,13 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none', width: '100%', boxSizing: 'border-box',
   },
   addBtn: {
-    padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: '#fff',
+    padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)',
     border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer', flexShrink: 0,
   },
   tags: { display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' },
   tag: {
     display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)',
-    padding: '5px 10px', backgroundColor: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)',
+    padding: '5px 10px', backgroundColor: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-soft-border)',
     borderRadius: '999px', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--color-primary)',
   },
   removeTag: {
@@ -658,12 +658,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '11px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
     background: 'var(--color-bg-tertiary)', cursor: 'pointer', textAlign: 'left', transition: 'all var(--transition-fast)',
   },
-  aiOptionActive: { borderColor: 'var(--color-primary)', backgroundColor: 'rgba(249, 115, 22, 0.1)' },
-  aiOptionActiveGold: { borderColor: 'var(--color-primary)', backgroundColor: 'rgba(249, 115, 22, 0.1)' },
+  aiOptionActive: { borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-primary-soft)' },
+  aiOptionActiveGold: { borderColor: 'var(--color-primary)', backgroundColor: 'var(--color-primary-soft)' },
   aiOptionTitle: { fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--color-text-primary)' },
   aiOptionDesc: { fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' },
   saveBtn: {
-    padding: '12px', backgroundColor: 'var(--color-primary)', color: '#fff',
+    padding: '12px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)',
     border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)',
     fontWeight: 'var(--weight-semibold)', cursor: 'pointer', width: '100%',
   },

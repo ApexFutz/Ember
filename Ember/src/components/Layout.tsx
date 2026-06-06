@@ -226,7 +226,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   badge: {
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     fontSize: '11px',
     fontWeight: '600',
     padding: '3px 9px',
@@ -261,7 +261,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '36px',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     fontSize: '14px',
     fontWeight: '600',
     display: 'flex',

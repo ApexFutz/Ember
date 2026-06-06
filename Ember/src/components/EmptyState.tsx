@@ -46,13 +46,13 @@ const styles: Record<string, React.CSSProperties> = {
   action: {
     padding: '11px 24px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all var(--transition-fast)',
-    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
+    boxShadow: 'var(--shadow-primary)',
   },
 }

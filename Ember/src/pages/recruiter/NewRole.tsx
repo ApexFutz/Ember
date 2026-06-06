@@ -231,8 +231,8 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
   },
   error: {
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
+    background: 'var(--color-error-soft)',
+    border: '1px solid var(--color-error-soft)',
     borderRadius: 'var(--radius-md)',
     padding: '10px 14px',
     fontSize: '13px',
@@ -308,9 +308,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   locationBtnActive: {
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     borderColor: 'var(--color-primary)',
-    boxShadow: '0 2px 8px rgba(249, 115, 22, 0.25)',
+    boxShadow: 'var(--shadow-primary)',
   },
   salaryRow: {
     display: 'flex',
@@ -364,7 +364,7 @@ const styles: Record<string, React.CSSProperties> = {
   activeBtn: {
     padding: '11px 22px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-sm)',

@@ -424,7 +424,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-xl)', marginBottom: '16px', boxShadow: 'var(--shadow-md)',
   },
   playBtn: {
-    padding: '9px 18px', backgroundColor: 'var(--color-primary)', color: '#fff',
+    padding: '9px 18px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)',
     border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)',
     fontWeight: 'var(--weight-semibold)', cursor: 'pointer', whiteSpace: 'nowrap', minWidth: '90px',
   },
@@ -442,14 +442,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   speedBtnActive: {
     padding: '7px 12px', border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-md)',
-    background: 'var(--color-primary)', fontSize: 'var(--text-xs)', color: '#fff', cursor: 'pointer', fontWeight: 'var(--weight-semibold)',
+    background: 'var(--color-primary)', fontSize: 'var(--text-xs)', color: 'var(--color-on-primary)', cursor: 'pointer', fontWeight: 'var(--weight-semibold)',
   },
   finalBtn: {
     padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
     background: 'transparent', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 'var(--weight-medium)',
   },
   pasteWarning: {
-    background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-soft-border)', borderRadius: 'var(--radius-md)',
     padding: '12px 16px', fontSize: 'var(--text-sm)', color: 'var(--color-primary-light)',
     marginBottom: '16px', lineHeight: '1.6',
   },
@@ -488,7 +488,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   notesSaved: { fontSize: 'var(--text-sm)', color: 'var(--color-success)' },
   notesBtn: {
-    padding: '9px 18px', backgroundColor: 'var(--color-primary)', color: '#fff',
+    padding: '9px 18px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)',
     border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)',
     fontWeight: 'var(--weight-semibold)', cursor: 'pointer',
   },

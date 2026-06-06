@@ -674,8 +674,8 @@ const styles: Record<string, React.CSSProperties> = {
   startWarning: {
     fontSize: 'var(--text-sm)',
     color: 'var(--color-primary-light)',
-    background: 'rgba(249, 115, 22, 0.1)',
-    border: '1px solid rgba(249, 115, 22, 0.3)',
+    background: 'var(--color-primary-soft)',
+    border: '1px solid var(--color-primary-soft-border)',
     borderRadius: 'var(--radius-md)',
     padding: '12px 14px',
     margin: '0 0 20px',
@@ -685,13 +685,13 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     padding: '13px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-lg)',
     fontWeight: 'var(--weight-semibold)',
     cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
+    boxShadow: 'var(--shadow-primary)',
   },
   // Done card
   doneCard: {
@@ -720,7 +720,7 @@ const styles: Record<string, React.CSSProperties> = {
   doneBtn: {
     padding: '10px 24px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-base)',
@@ -760,8 +760,8 @@ const styles: Record<string, React.CSSProperties> = {
   aiBadge: {
     fontSize: 'var(--text-xs)',
     color: 'var(--color-primary-light)',
-    background: 'rgba(249, 115, 22, 0.1)',
-    border: '1px solid rgba(249, 115, 22, 0.3)',
+    background: 'var(--color-primary-soft)',
+    border: '1px solid var(--color-primary-soft-border)',
     padding: '2px 8px',
     borderRadius: '999px',
   },
@@ -789,7 +789,7 @@ const styles: Record<string, React.CSSProperties> = {
   submitBtn: {
     padding: '7px 20px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-sm)',
@@ -868,7 +868,7 @@ const styles: Record<string, React.CSSProperties> = {
   newFileConfirm: {
     padding: '4px 8px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-sm)',
     cursor: 'pointer',
@@ -911,8 +911,8 @@ const styles: Record<string, React.CSSProperties> = {
   taskTag: {
     fontSize: 'var(--text-xs)',
     padding: '3px 8px',
-    backgroundColor: 'rgba(249, 115, 22, 0.1)',
-    border: '1px solid rgba(249, 115, 22, 0.3)',
+    backgroundColor: 'var(--color-primary-soft)',
+    border: '1px solid var(--color-primary-soft-border)',
     color: 'var(--color-primary-light)',
     borderRadius: '999px',
   },
@@ -969,8 +969,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px',
     letterSpacing: '0.05em', flexShrink: 0,
   },
-  resultPass: { color: 'var(--color-success)', backgroundColor: 'rgba(16, 185, 129, 0.12)' },
-  resultFail: { color: 'var(--color-error)', backgroundColor: 'rgba(239, 68, 68, 0.12)' },
+  resultPass: { color: 'var(--color-success)', backgroundColor: 'var(--color-success-soft)' },
+  resultFail: { color: 'var(--color-error)', backgroundColor: 'var(--color-error-soft)' },
   resultName: { color: 'var(--color-text-primary)' },
   resultMsg: { color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' },
 }
