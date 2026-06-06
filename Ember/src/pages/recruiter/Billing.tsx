@@ -103,7 +103,7 @@ export default function Billing() {
   const exampleHires = 5
   const exampleSalary = 120000
   const totalSalary = exampleHires * exampleSalary
-  const emberTotal = 166 * 12 + Math.floor(totalSalary * 0.04)
+  const emberTotal = 199 * 12 + Math.floor(totalSalary * 0.04)
   const gunTotal = Math.floor(totalSalary * 0.20)
   const savings = gunTotal - emberTotal
   const cheaperPct = Math.floor((1 - emberTotal / gunTotal) * 100)
