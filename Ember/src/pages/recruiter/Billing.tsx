@@ -20,7 +20,7 @@ const GRADIENT = 'linear-gradient(90deg, var(--color-primary), var(--color-prima
 
 const tiers: Tier[] = [
   {
-    name: 'Starter', description: 'For early-stage teams', basePrice: 199, performancePercentage: 15,
+    name: 'Starter', description: 'For early-stage teams', basePrice: 66, performancePercentage: 5,
     icon: Zap, accent: '#fb923c', cta: 'Start Free Trial', highlighted: false,
     features: [
       { text: 'Up to 2 recruiters', included: true },
@@ -36,7 +36,7 @@ const tiers: Tier[] = [
     ],
   },
   {
-    name: 'Growth', description: 'For scaling teams', basePrice: 499, performancePercentage: 12,
+    name: 'Growth', description: 'For scaling teams', basePrice: 166, performancePercentage: 4,
     icon: TrendingUp, accent: '#f97316', cta: 'Start Free Trial', highlighted: true,
     features: [
       { text: 'Up to 5 recruiters', included: true },
@@ -52,7 +52,7 @@ const tiers: Tier[] = [
     ],
   },
   {
-    name: 'Scale', description: 'For enterprise hiring', basePrice: 1299, performancePercentage: 10,
+    name: 'Scale', description: 'For enterprise hiring', basePrice: 433, performancePercentage: 3.3,
     icon: Target, accent: '#ea580c', cta: 'Contact Sales', highlighted: false,
     features: [
       { text: 'Up to 15 recruiters', included: true },
@@ -103,7 +103,7 @@ export default function Billing() {
   const exampleHires = 5
   const exampleSalary = 120000
   const totalSalary = exampleHires * exampleSalary
-  const emberTotal = 499 * 12 + Math.floor(totalSalary * 0.12)
+  const emberTotal = 166 * 12 + Math.floor(totalSalary * 0.04)
   const gunTotal = Math.floor(totalSalary * 0.20)
   const savings = gunTotal - emberTotal
   const cheaperPct = Math.floor((1 - emberTotal / gunTotal) * 100)
@@ -201,8 +201,8 @@ export default function Billing() {
           <div style={styles.roiGrid}>
             <div style={{ ...styles.roiCard, borderColor: 'rgba(249, 115, 22, 0.3)' }}>
               <h3 style={styles.roiTitle}><span style={{ color: ORANGE }}>✓</span> Ember</h3>
-              <div style={styles.roiRow}><span style={styles.muted}>Growth tier (monthly)</span><span style={styles.strong}>$499</span></div>
-              <div style={styles.roiRow}><span style={styles.muted}>Performance fee (12% × ${totalSalary.toLocaleString()})</span><span style={styles.strong}>${Math.floor(totalSalary * 0.12).toLocaleString()}</span></div>
+              <div style={styles.roiRow}><span style={styles.muted}>Growth tier (monthly)</span><span style={styles.strong}>$166</span></div>
+              <div style={styles.roiRow}><span style={styles.muted}>Performance fee (4% × ${totalSalary.toLocaleString()})</span><span style={styles.strong}>${Math.floor(totalSalary * 0.04).toLocaleString()}</span></div>
               <div style={styles.roiTotal}><span style={styles.strong}>Total for 5 hires/year</span><span style={{ color: ORANGE, fontWeight: 700, fontSize: '18px' }}>${emberTotal.toLocaleString()}</span></div>
             </div>
 
