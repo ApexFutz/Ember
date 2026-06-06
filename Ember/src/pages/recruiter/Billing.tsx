@@ -20,7 +20,7 @@ const GRADIENT = 'linear-gradient(90deg, var(--color-primary), var(--color-prima
 
 const tiers: Tier[] = [
   {
-    name: 'Starter', description: 'For early-stage teams', basePrice: 66, performancePercentage: 5,
+    name: 'Starter', description: 'For early-stage teams', basePrice: 89, performancePercentage: 8,
     icon: Zap, accent: '#fb923c', cta: 'Start Free Trial', highlighted: false,
     features: [
       { text: 'Up to 2 recruiters', included: true },
@@ -36,7 +36,7 @@ const tiers: Tier[] = [
     ],
   },
   {
-    name: 'Growth', description: 'For scaling teams', basePrice: 166, performancePercentage: 4,
+    name: 'Growth', description: 'For scaling teams', basePrice: 199, performancePercentage: 6,
     icon: TrendingUp, accent: '#f97316', cta: 'Start Free Trial', highlighted: true,
     features: [
       { text: 'Up to 5 recruiters', included: true },
@@ -52,7 +52,7 @@ const tiers: Tier[] = [
     ],
   },
   {
-    name: 'Scale', description: 'For enterprise hiring', basePrice: 433, performancePercentage: 3.3,
+    name: 'Scale', description: 'For enterprise hiring', basePrice: 499, performancePercentage: 4.5,
     icon: Target, accent: '#ea580c', cta: 'Contact Sales', highlighted: false,
     features: [
       { text: 'Up to 15 recruiters', included: true },
