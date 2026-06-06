@@ -362,13 +362,13 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   threadAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  threadAvatarInitial: { fontSize: '16px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-display)' },
+  threadAvatarInitial: { fontSize: '16px', fontWeight: '600', color: 'var(--color-on-primary)', fontFamily: 'var(--font-display)' },
   threadInfo: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' },
   threadTopRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   threadName: { fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' },
   threadUnread: {
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     fontSize: '11px',
     fontWeight: '600',
     padding: '2px 8px',
@@ -421,7 +421,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   bubbleMine: {
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     borderBottomRightRadius: 'var(--radius-sm)',
   },
   bubbleTheirs: {
@@ -464,7 +464,7 @@ const styles: Record<string, React.CSSProperties> = {
   sendBtn: {
     padding: '11px 20px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: '13px',
@@ -472,6 +472,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     flexShrink: 0,
     transition: 'all var(--transition-fast)',
-    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
+    boxShadow: 'var(--shadow-primary)',
   },
 }

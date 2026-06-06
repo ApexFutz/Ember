@@ -77,9 +77,9 @@ export default function RecruiterRoles() {
   }
 
   const statusColors: Record<RoleStatus, { bg: string; color: string }> = {
-    draft: { bg: 'rgba(154, 154, 168, 0.12)', color: '#9a9aa8' },
-    active: { bg: 'rgba(16, 185, 129, 0.12)', color: '#10b981' },
-    archived: { bg: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' },
+    draft: { bg: 'var(--color-neutral-soft)', color: 'var(--color-text-secondary)' },
+    active: { bg: 'var(--color-success-soft)', color: 'var(--color-success)' },
+    archived: { bg: 'var(--color-error-soft)', color: 'var(--color-error)' },
   }
 
   if (loading) return <div style={styles.loading}>Loading roles...</div>
@@ -241,7 +241,7 @@ const styles: Record<string, React.CSSProperties> = {
   newBtn: {
     padding: '10px 20px',
     backgroundColor: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-sm)',
@@ -363,6 +363,6 @@ const styles: Record<string, React.CSSProperties> = {
   railRowName: { flex: 1, fontSize: '13px', color: 'var(--color-text-primary)' },
   railRowNum: { fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)' },
   railActions: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  railActionPrimary: { padding: '9px 14px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  railActionPrimary: { padding: '9px 14px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
   railAction: { padding: '9px 14px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '500', color: 'var(--color-text-secondary)', cursor: 'pointer' },
 }

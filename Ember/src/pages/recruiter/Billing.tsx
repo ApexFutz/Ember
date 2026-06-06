@@ -21,7 +21,7 @@ const GRADIENT = 'linear-gradient(90deg, var(--color-primary), var(--color-prima
 const tiers: Tier[] = [
   {
     name: 'Starter', description: 'For early-stage teams', basePrice: 89, performancePercentage: 8,
-    icon: Zap, accent: '#fb923c', cta: 'Start Free Trial', highlighted: false,
+    icon: Zap, accent: 'var(--color-primary-light)', cta: 'Start Free Trial', highlighted: false,
     features: [
       { text: 'Up to 2 recruiters', included: true },
       { text: 'Unlimited assessments', included: true },
@@ -37,7 +37,7 @@ const tiers: Tier[] = [
   },
   {
     name: 'Growth', description: 'For scaling teams', basePrice: 199, performancePercentage: 6,
-    icon: TrendingUp, accent: '#f97316', cta: 'Start Free Trial', highlighted: true,
+    icon: TrendingUp, accent: 'var(--color-primary)', cta: 'Start Free Trial', highlighted: true,
     features: [
       { text: 'Up to 5 recruiters', included: true },
       { text: 'Unlimited assessments', included: true },
@@ -53,7 +53,7 @@ const tiers: Tier[] = [
   },
   {
     name: 'Scale', description: 'For enterprise hiring', basePrice: 499, performancePercentage: 4.5,
-    icon: Target, accent: '#ea580c', cta: 'Contact Sales', highlighted: false,
+    icon: Target, accent: 'var(--color-primary-dark)', cta: 'Contact Sales', highlighted: false,
     features: [
       { text: 'Up to 15 recruiters', included: true },
       { text: 'Unlimited assessments', included: true },
@@ -69,7 +69,7 @@ const tiers: Tier[] = [
   },
   {
     name: 'Enterprise', description: 'Fully customized', basePrice: null, performancePercentage: 'Custom',
-    icon: Crown, accent: '#f59e0b', cta: 'Contact Sales', highlighted: false,
+    icon: Crown, accent: 'var(--color-warning-text)', cta: 'Contact Sales', highlighted: false,
     features: [
       { text: 'Unlimited recruiters', included: true },
       { text: 'Unlimited assessments', included: true },
@@ -113,8 +113,8 @@ export default function Billing() {
       {/* Scoped animated background */}
       <div style={styles.bg}>
         <div className="ember-blob" style={{ ...styles.blob, top: '-40px', left: '15%', background: 'var(--color-primary)' }} />
-        <div className="ember-blob ember-blob-delay-2000" style={{ ...styles.blob, top: '120px', right: '15%', background: '#f59e0b' }} />
-        <div className="ember-blob ember-blob-delay-4000" style={{ ...styles.blob, top: '420px', left: '45%', background: '#ea580c' }} />
+        <div className="ember-blob ember-blob-delay-2000" style={{ ...styles.blob, top: '120px', right: '15%', background: 'var(--color-warning-text)' }} />
+        <div className="ember-blob ember-blob-delay-4000" style={{ ...styles.blob, top: '420px', left: '45%', background: 'var(--color-primary-dark)' }} />
       </div>
 
       <div style={styles.content}>
@@ -151,7 +151,7 @@ export default function Billing() {
               <div key={tier.name} style={{ ...styles.card, ...(tier.highlighted ? styles.cardHi : {}) }}>
                 {tier.highlighted && <span style={styles.popular}>Most Popular</span>}
 
-                <div style={{ ...styles.iconWrap, backgroundColor: 'rgba(249, 115, 22, 0.12)' }}>
+                <div style={{ ...styles.iconWrap, backgroundColor: 'var(--color-primary-soft)' }}>
                   <Icon size={22} color={tier.accent} />
                 </div>
                 <h3 style={styles.cardName}>{tier.name}</h3>
@@ -199,7 +199,7 @@ export default function Billing() {
         <div style={styles.section}>
           <h2 style={styles.h2}>See How Much You Save</h2>
           <div style={styles.roiGrid}>
-            <div style={{ ...styles.roiCard, borderColor: 'rgba(249, 115, 22, 0.3)' }}>
+            <div style={{ ...styles.roiCard, borderColor: 'var(--color-primary-soft-border)' }}>
               <h3 style={styles.roiTitle}><span style={{ color: ORANGE }}>✓</span> Ember</h3>
               <div style={styles.roiRow}><span style={styles.muted}>Growth tier (monthly)</span><span style={styles.strong}>$166</span></div>
               <div style={styles.roiRow}><span style={styles.muted}>Performance fee (4% × ${totalSalary.toLocaleString()})</span><span style={styles.strong}>${Math.floor(totalSalary * 0.04).toLocaleString()}</span></div>
@@ -268,18 +268,18 @@ const styles: Record<string, React.CSSProperties> = {
   content: { position: 'relative', zIndex: 1, maxWidth: '1100px', margin: '0 auto' },
 
   header: { textAlign: 'center', maxWidth: '760px', margin: '0 auto 48px' },
-  eyebrow: { display: 'inline-block', marginBottom: '16px', padding: '6px 14px', borderRadius: '999px', background: 'rgba(249, 115, 22, 0.12)', border: '1px solid rgba(249, 115, 22, 0.4)', color: ORANGE, fontSize: '12px', fontWeight: 600, letterSpacing: '0.08em' },
+  eyebrow: { display: 'inline-block', marginBottom: '16px', padding: '6px 14px', borderRadius: '999px', background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-soft-border)', color: ORANGE, fontSize: '12px', fontWeight: 600, letterSpacing: '0.08em' },
   h1: { fontSize: '44px', lineHeight: 1.1, fontWeight: 700, margin: '0 0 20px', fontFamily: 'var(--font-display)', background: GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' },
   lede: { fontSize: '18px', color: 'var(--color-text-secondary)', lineHeight: 1.6, margin: '0 0 28px' },
   toggleRow: { display: 'flex', justifyContent: 'center', gap: '12px' },
   toggle: { padding: '9px 20px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' },
-  toggleActive: { padding: '9px 20px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)' },
+  toggleActive: { padding: '9px 20px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: '1px solid var(--color-primary)' },
   toggleSave: { fontSize: '11px', marginLeft: '6px', color: ORANGE_LIGHT },
 
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '80px', alignItems: 'start' },
   card: { ...card, position: 'relative', display: 'flex', flexDirection: 'column' },
-  cardHi: { borderColor: 'rgba(249, 115, 22, 0.6)', boxShadow: '0 10px 40px rgba(249, 115, 22, 0.18)' },
-  popular: { position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', padding: '4px 14px', borderRadius: '999px', background: GRADIENT, color: '#fff', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' },
+  cardHi: { borderColor: 'var(--color-primary-soft-border)', boxShadow: 'var(--shadow-primary)' },
+  popular: { position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', padding: '4px 14px', borderRadius: '999px', background: GRADIENT, color: 'var(--color-on-primary)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' },
   iconWrap: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '46px', height: '46px', borderRadius: 'var(--radius-md)', marginBottom: '16px' },
   cardName: { fontSize: '22px', fontWeight: 700, margin: '0 0 4px', color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' },
   cardDesc: { fontSize: '13px', color: 'var(--color-text-tertiary)', margin: '0 0 20px' },
@@ -289,7 +289,7 @@ const styles: Record<string, React.CSSProperties> = {
   priceUnit: { color: 'var(--color-text-tertiary)', fontSize: '14px' },
   perHire: { color: 'var(--color-text-secondary)', fontSize: '13px', margin: '8px 0 0' },
   cta: { width: '100%', padding: '11px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' },
-  ctaHi: { width: '100%', padding: '11px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: GRADIENT, color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)' },
+  ctaHi: { width: '100%', padding: '11px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: GRADIENT, color: 'var(--color-on-primary)', border: 'none', boxShadow: 'var(--shadow-primary)' },
   features: { display: 'flex', flexDirection: 'column', gap: '11px' },
   featureRow: { display: 'flex', alignItems: 'flex-start', gap: '10px' },
   featureOn: { fontSize: '13px', color: 'var(--color-text-secondary)' },
@@ -304,7 +304,7 @@ const styles: Record<string, React.CSSProperties> = {
   muted: { color: 'var(--color-text-secondary)', fontSize: '13px' },
   strong: { fontWeight: 600, color: 'var(--color-text-primary)', fontSize: '13px' },
   roiTotal: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '12px', marginTop: '6px' },
-  saveCard: { ...card, background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(245, 158, 11, 0.10))', border: '1px solid rgba(249, 115, 22, 0.5)', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  saveCard: { ...card, background: 'linear-gradient(135deg, var(--color-primary-soft), var(--color-warning-soft))', border: '1px solid var(--color-primary-soft-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
   saveNum: { fontSize: '38px', fontWeight: 700, color: ORANGE, fontFamily: 'var(--font-display)', margin: '12px 0 4px' },
   saveSub: { fontSize: '12px', color: 'var(--color-text-tertiary)', margin: 0 },
   footnote: { textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: '13px', margin: 0 },
@@ -316,5 +316,5 @@ const styles: Record<string, React.CSSProperties> = {
   faqA: { padding: '0 20px 18px 50px', color: 'var(--color-text-secondary)', fontSize: '14px', lineHeight: 1.6 },
 
   ctaFooterWrap: { display: 'flex', justifyContent: 'center' },
-  ctaFooter: { ...card, maxWidth: '620px', textAlign: 'center', padding: '48px', background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(245, 158, 11, 0.08))', border: '1px solid rgba(249, 115, 22, 0.5)' },
+  ctaFooter: { ...card, maxWidth: '620px', textAlign: 'center', padding: '48px', background: 'linear-gradient(135deg, var(--color-primary-soft), var(--color-warning-soft))', border: '1px solid var(--color-primary-soft-border)' },
 }

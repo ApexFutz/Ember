@@ -16,9 +16,9 @@ interface CandidateSkill {
 }
 
 const tierConfig: Record<Tier, { label: string; color: string; bg: string }> = {
-  beginner: { label: 'Beginner', color: 'var(--color-text-secondary)', bg: 'rgba(154, 154, 168, 0.12)' },
-  intermediate: { label: 'Intermediate', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
-  advanced: { label: 'Advanced', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+  beginner: { label: 'Beginner', color: 'var(--color-text-secondary)', bg: 'var(--color-neutral-soft)' },
+  intermediate: { label: 'Intermediate', color: 'var(--color-info-text)', bg: 'var(--color-info-soft)' },
+  advanced: { label: 'Advanced', color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
 }
 
 export default function CandidateSkills() {
@@ -169,7 +169,7 @@ const styles: Record<string, React.CSSProperties> = {
   header: { marginBottom: '32px' },
   headerRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' },
   genBtn: {
-    padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none',
+    padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none',
     borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)',
     cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
   },
@@ -179,7 +179,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', fontWeight: 'var(--weight-medium)',
   },
   error: {
-    background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
+    background: 'var(--color-error-soft)', border: '1px solid var(--color-error-soft)',
     borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px',
     color: 'var(--color-error)', marginBottom: '20px',
   },

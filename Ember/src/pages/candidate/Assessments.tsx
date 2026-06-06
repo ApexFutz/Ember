@@ -16,10 +16,10 @@ interface MyAssessment {
 }
 
 const statusConfig: Record<SubmissionStatus, { label: string; color: string; bg: string }> = {
-  pending_review: { label: 'Pending review', color: '#fbbf24', bg: 'rgba(245, 158, 11, 0.15)' },
-  reviewed: { label: 'Reviewed', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
-  moved_forward: { label: 'Moved forward', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-  passed: { label: 'Not selected', color: 'var(--color-text-secondary)', bg: 'rgba(154, 154, 168, 0.12)' },
+  pending_review: { label: 'Pending review', color: 'var(--color-warning-text)', bg: 'var(--color-warning-soft)' },
+  reviewed: { label: 'Reviewed', color: 'var(--color-info-text)', bg: 'var(--color-info-soft)' },
+  moved_forward: { label: 'Moved forward', color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
+  passed: { label: 'Not selected', color: 'var(--color-text-secondary)', bg: 'var(--color-neutral-soft)' },
 }
 
 function formatDate(dateStr: string) {
