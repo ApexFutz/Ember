@@ -12,6 +12,7 @@ import RecruiterRoles from './pages/recruiter/Roles.tsx'
 import NewRole from './pages/recruiter/NewRole.tsx'
 import Ruleset from './pages/recruiter/Ruleset.tsx'
 import Library from './pages/recruiter/Library.tsx'
+import Billing from './pages/recruiter/Billing.tsx'
 import CandidateRoles from './pages/candidate/Roles'
 import Assessment from './pages/assessment/Assessment.tsx'
 import RecruiterDashboard from './pages/recruiter/Dashboard.tsx'
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<RecruiterDashboard />} />
         <Route path="roles" element={<RecruiterRoles />} />
         <Route path="library" element={<Library />} />
+        <Route path="billing" element={<Billing />} />
         <Route path="roles/new" element={<NewRole />} />
         <Route path="roles/:id/ruleset" element={<Ruleset />} />
         <Route path="messages" element={<Messages />} />

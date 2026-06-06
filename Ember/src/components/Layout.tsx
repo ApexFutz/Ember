@@ -64,6 +64,7 @@ export default function Layout() {
     { path: '/recruiter/dashboard', label: 'Dashboard' },
     { path: '/recruiter/roles', label: 'Roles' },
     { path: '/recruiter/library', label: 'Library' },
+    { path: '/recruiter/billing', label: 'Billing' },
     { path: '/recruiter/messages', label: 'Messages' },
     { path: '/recruiter/profile', label: 'Profile' },
   ]
