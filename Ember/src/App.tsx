@@ -6,6 +6,7 @@ import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
+import PublicProfile from './pages/PublicProfile'
 import CandidateProfile from './pages/candidate/Profile'
 import RecruiterProfile from './pages/recruiter/Profile'
 import RecruiterRoles from './pages/recruiter/Roles.tsx'
@@ -46,6 +47,9 @@ function AppRoutes() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* Public shareable candidate profile — no auth */}
+      <Route path="/c/:username" element={<PublicProfile />} />
 
       {/* Assessment — fullscreen, completely standalone */}
       <Route path="/assessment/:roleId" element={

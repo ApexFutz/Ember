@@ -13,6 +13,8 @@ interface ProfileForm {
   portfolio_url: string
   skills: string[]
   availability: Availability
+  username: string
+  public_profile: boolean
 }
 
 const availabilityOptions: { value: Availability; label: string; color: string }[] = [
@@ -32,8 +34,11 @@ export default function CandidateProfile() {
     portfolio_url: '',
     skills: [],
     availability: 'available',
+    username: '',
+    public_profile: true,
   })
   const [skillInput, setSkillInput] = useState('')
+  const [copied, setCopied] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -52,6 +57,8 @@ export default function CandidateProfile() {
       portfolio_url: (profile as any).portfolio_url ?? '',
       skills: (profile as any).skills ?? [],
       availability: (profile as any).availability ?? 'available',
+      username: (profile as any).username ?? '',
+      public_profile: (profile as any).public_profile ?? true,
     })
     if ((profile as any).photo_url) {
       setPhotoPreview((profile as any).photo_url)
@@ -89,6 +96,12 @@ export default function CandidateProfile() {
 
   async function handleSave() {
     if (!user) return
+    const handle = form.username.trim().toLowerCase()
+    if (handle && !/^[a-z0-9-]+$/.test(handle)) {
+      setError('Username can only contain lowercase letters, numbers, and hyphens.')
+      return
+    }
+
     setSaving(true)
     setError(null)
     setSaved(false)
@@ -124,11 +137,16 @@ export default function CandidateProfile() {
           portfolio_url: form.portfolio_url,
           skills: form.skills,
           availability: form.availability,
+          username: handle || null,
+          public_profile: form.public_profile,
           photo_url,
         })
         .eq('id', user.id)
 
-      if (saveError) throw saveError
+      if (saveError) {
+        if ((saveError as any).code === '23505') throw new Error('That username is already taken.')
+        throw saveError
+      }
 
       setSaved(true)
       await refreshProfile()
@@ -212,6 +230,55 @@ export default function CandidateProfile() {
                 {currentAvailability?.label}
               </strong>
             </p>
+          </div>
+
+          {/* Public profile */}
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Public profile</p>
+            <p style={styles.uploadHint}>Share a verified record of your assessments at a public link.</p>
+
+            <div style={styles.handleRow}>
+              <span style={styles.handlePrefix}>/c/</span>
+              <input
+                type="text"
+                value={form.username}
+                onChange={e => handleChange('username', e.target.value.toLowerCase())}
+                placeholder="your-handle"
+                style={{ ...styles.input, flex: 1 }}
+              />
+            </div>
+
+            <div style={styles.pubToggleRow}>
+              <button
+                onClick={() => setForm(prev => ({ ...prev, public_profile: true }))}
+                style={{ ...styles.availBtn, ...(form.public_profile ? { backgroundColor: 'var(--color-success)', color: 'var(--color-on-primary)', borderColor: 'var(--color-success)' } : {}) }}
+              >
+                Public
+              </button>
+              <button
+                onClick={() => setForm(prev => ({ ...prev, public_profile: false }))}
+                style={{ ...styles.availBtn, ...(!form.public_profile ? { backgroundColor: 'var(--color-text-secondary)', color: 'var(--color-on-primary)', borderColor: 'var(--color-text-secondary)' } : {}) }}
+              >
+                Private
+              </button>
+            </div>
+
+            {form.username.trim() && (
+              <div style={styles.copyRow}>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/c/${form.username.trim().toLowerCase()}`)
+                    setCopied(true); setTimeout(() => setCopied(false), 2000)
+                  }}
+                  style={styles.addBtn}
+                >
+                  {copied ? 'Copied!' : 'Copy profile link'}
+                </button>
+                <a href={`/c/${form.username.trim().toLowerCase()}`} target="_blank" rel="noreferrer" style={styles.viewLink}>
+                  View public profile →
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Skills */}
@@ -580,6 +647,11 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: 'var(--shadow-primary)',
     transition: 'all var(--transition-fast)',
   },
+  handleRow: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' },
+  handlePrefix: { fontSize: '14px', color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)' },
+  pubToggleRow: { display: 'flex', gap: '8px', marginBottom: '12px' },
+  copyRow: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' },
+  viewLink: { fontSize: '13px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 },
   saveBtn: {
     padding: '12px 16px',
     backgroundColor: 'var(--color-primary)',
