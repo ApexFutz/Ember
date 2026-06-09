@@ -1,6 +1,13 @@
 {
+  "scripts": {
+    "seed": "npx tsx scripts/seed.ts"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
     "react-router-dom": "^7.16.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.2"
   }
 }
