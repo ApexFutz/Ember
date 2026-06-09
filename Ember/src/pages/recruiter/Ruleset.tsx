@@ -202,6 +202,7 @@ export default function Ruleset() {
         task_type: form.task_type,
         task_description: form.task_description,
         time_limit_mins: form.time_limit_mins,
+        time_limit_seconds: form.time_limit_mins * 60,
         ai_allowed: form.ai_allowed,
         starter_template: form.starter_template,
         runtime: form.runtime,

@@ -48,6 +48,7 @@ export default function Replay() {
   const [notesSaved, setNotesSaved] = useState(false)
   const [displayContent, setDisplayContent] = useState('')
   const [activeReplayFile, setActiveReplayFile] = useState('')
+  const [autoSubmitted, setAutoSubmitted] = useState(false)
 
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -93,10 +94,11 @@ export default function Replay() {
         // Load final files
         const { data: assessmentData } = await supabase
           .from('assessments')
-          .select('files')
+          .select('files, auto_submitted')
           .eq('id', subData.assessment_id)
           .single()
 
+        if (assessmentData?.auto_submitted) setAutoSubmitted(true)
         if (assessmentData?.files) {
           setFinalFiles(assessmentData.files)
           if (assessmentData.files.length > 0) {
@@ -243,6 +245,9 @@ export default function Replay() {
         <p style={styles.subtitle}>
           {submission?.candidate_headline} · {submission?.role_title}
         </p>
+        {autoSubmitted && (
+          <span style={styles.autoBadge}>⏱ Auto-submitted — time expired</span>
+        )}
       </div>
 
       {logs.length === 0 ? (
@@ -403,6 +408,11 @@ const styles: Record<string, React.CSSProperties> = {
   header: { marginBottom: '24px' },
   title: { fontSize: 'var(--text-3xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 4px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: 'var(--text-base)', color: 'var(--color-text-secondary)', margin: 0 },
+  autoBadge: {
+    display: 'inline-block', marginTop: '10px', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
+    color: 'var(--color-error-text)', background: 'var(--color-error-soft)', border: '1px solid var(--color-error)',
+    borderRadius: '999px', padding: '4px 12px', letterSpacing: '0.02em',
+  },
   noLogs: {
     padding: '40px', textAlign: 'center', fontSize: '14px', color: 'var(--color-text-secondary)',
     background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)',

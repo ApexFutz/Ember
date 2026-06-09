@@ -154,6 +154,47 @@ Open http://localhost:5173
 
 ---
 
+## Development
+
+### Seeding test data
+
+`npm run seed` populates a Supabase instance with a complete, demonstrable hiring
+loop so you don't have to create accounts, roles, and assessments by hand.
+
+It creates:
+
+- **Users** — one recruiter (`recruiter@test.ember`) and two candidates
+  (`alice@test.ember`, `bob@test.ember`), all with password `password123` and
+  confirmed emails (login works immediately).
+- **Roles** — an active *Frontend Engineer* role at Acme Corp (with a ruleset), a
+  *Backend Engineer* draft (hidden from candidates), and an archived *Data Analyst*.
+- **Assessments** — Alice has a fully submitted session (~200 keystroke log entries
+  including one paste event) and a pending submission ready to replay; Bob has an
+  in-progress session with a partial log.
+- **Messages** — a thread between the recruiter and Alice with three messages.
+
+**Setup:** the seed needs the **service-role** key (it writes across users, which
+bypasses RLS). Add it to the root `.env` — it is never bundled into the frontend:
+
+```
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_ANON_KEY=your_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key   # Project Settings → API
+```
+
+**Run** (from the repo root, with the schema already applied):
+
+```bash
+npm install   # first time only — installs tsx + dotenv
+npm run seed
+```
+
+The script is **idempotent** — every row is matched on a natural key and reused, so
+running it twice never creates duplicates. After seeding, log in as the recruiter
+and open Alice's submission to walk the full replay workflow end to end.
+
+---
+
 ## How It Works (End to End)
 
 1. A **recruiter** signs up, posts a role, and builds a ruleset describing the real work a candidate will do
