@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import WelcomeModal from './WelcomeModal'
+import { markWelcomeSeen } from '../lib/founding'
 
 export default function Layout() {
-  const { profile, isRecruiter } = useAuth()
+  const { profile, isRecruiter, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
+  const showWelcome = !!profile?.founding_recruiter && !profile?.has_seen_welcome
 
   useEffect(() => {
     if (!profile) return
@@ -82,6 +85,9 @@ export default function Layout() {
 
   return (
     <div style={styles.shell}>
+      {showWelcome && (
+        <WelcomeModal onDismiss={async () => { await markWelcomeSeen(); await refreshProfile() }} />
+      )}
       {/* Sidebar */}
       <aside style={styles.sidebar}>
         {/* Logo */}

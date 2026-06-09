@@ -7,6 +7,7 @@ import Signup from './pages/auth/Signup'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import PublicProfile from './pages/PublicProfile'
+import Admin from './pages/Admin'
 import CandidateProfile from './pages/candidate/Profile'
 import RecruiterProfile from './pages/recruiter/Profile'
 import RecruiterRoles from './pages/recruiter/Roles.tsx'
@@ -50,6 +51,13 @@ function AppRoutes() {
 
       {/* Public shareable candidate profile — no auth */}
       <Route path="/c/:username" element={<PublicProfile />} />
+
+      {/* Admin — auth required; page itself gates on is_admin() */}
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <Admin />
+        </ProtectedRoute>
+      } />
 
       {/* Assessment — fullscreen, completely standalone */}
       <Route path="/assessment/:roleId" element={
