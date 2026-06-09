@@ -24,6 +24,48 @@ interface Submission {
   tests_passed: number | null
   tests_total: number | null
   replay_viewed: boolean
+  duration_s: number | null
+  paste_count: number | null
+}
+
+// Recruiter-facing status filters (maps the DB statuses to demo-friendly labels).
+type StatusFilter = 'all' | SubmissionStatus
+const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'pending_review', label: 'Pending' },
+  { key: 'reviewed', label: 'Reviewed' },
+  { key: 'moved_forward', label: 'Advanced' },
+  { key: 'passed', label: 'Rejected' },
+]
+
+type SortKey = 'submitted_at' | 'candidate_name' | 'duration' | 'paste_count'
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'submitted_at', label: 'Submitted' },
+  { key: 'candidate_name', label: 'Candidate' },
+  { key: 'duration', label: 'Completion time' },
+  { key: 'paste_count', label: 'Paste events' },
+]
+
+// Above this count we'd switch to server-side pagination (see loadSubmissionsPage).
+const CLIENT_SORT_LIMIT = 200
+
+interface DashboardFilters {
+  status: StatusFilter
+  role: string // role_id or 'all'
+  sortKey: SortKey
+  sortDir: 'asc' | 'desc'
+}
+const FILTERS_KEY = 'ember.dashboard.filters'
+const DEFAULT_FILTERS: DashboardFilters = {
+  status: 'all', role: 'all', sortKey: 'submitted_at', sortDir: 'desc',
+}
+
+function loadFilters(): DashboardFilters {
+  try {
+    const raw = sessionStorage.getItem(FILTERS_KEY)
+    if (raw) return { ...DEFAULT_FILTERS, ...JSON.parse(raw) }
+  } catch { /* ignore */ }
+  return DEFAULT_FILTERS
 }
 
 interface RoleGroup {
@@ -62,13 +104,39 @@ export default function RecruiterDashboard() {
   const navigate = useNavigate()
   const [roleGroups, setRoleGroups] = useState<RoleGroup[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending')
+  const [filters, setFilters] = useState<DashboardFilters>(loadFilters)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
     loadSubmissions()
   }, [user])
+
+  // Persist filters for the session so they survive navigating away and back.
+  useEffect(() => {
+    try { sessionStorage.setItem(FILTERS_KEY, JSON.stringify(filters)) } catch { /* ignore */ }
+  }, [filters])
+
+  function patchFilters(patch: Partial<DashboardFilters>) {
+    setFilters(prev => ({ ...prev, ...patch }))
+  }
+
+  // Clicking a sort header toggles direction if it's already active.
+  function toggleSort(key: SortKey) {
+    setFilters(prev => prev.sortKey === key
+      ? { ...prev, sortDir: prev.sortDir === 'asc' ? 'desc' : 'asc' }
+      : { ...prev, sortKey: key, sortDir: key === 'candidate_name' ? 'asc' : 'desc' })
+  }
+
+  // Server-side pagination stub — wired in once a recruiter exceeds
+  // CLIENT_SORT_LIMIT submissions. Until then everything is sorted client-side.
+  // async function loadSubmissionsPage(page: number, pageSize = 50) {
+  //   const from = page * pageSize
+  //   return supabase.from('submission_details').select('*')
+  //     .eq('recruiter_id', user!.id)
+  //     .order('submitted_at', { ascending: false })
+  //     .range(from, from + pageSize - 1)
+  // }
 
   async function loadSubmissions() {
     const { data, error } = await supabase
@@ -83,20 +151,27 @@ export default function RecruiterDashboard() {
       return
     }
 
-    // Fetch replay-viewed flags (not exposed on the view) and merge in.
+    // Fetch replay-viewed flags + metrics (not exposed on the view) and merge in.
     const rows = data ?? []
     const ids = rows.map((s: any) => s.id)
     const viewed = new Set<string>()
+    const metricsById = new Map<string, any>()
     if (ids.length > 0) {
       const { data: flags } = await supabase
         .from('submissions')
-        .select('id, replay_viewed')
+        .select('id, replay_viewed, metrics')
         .in('id', ids)
       for (const f of flags ?? []) {
         if (f.replay_viewed) viewed.add(f.id)
+        metricsById.set(f.id, f.metrics)
       }
     }
-    for (const s of rows) (s as any).replay_viewed = viewed.has(s.id)
+    for (const s of rows) {
+      (s as any).replay_viewed = viewed.has(s.id)
+      const m = metricsById.get(s.id)
+      ;(s as any).duration_s = m?.duration_s ?? null
+      ;(s as any).paste_count = m?.paste_count ?? null
+    }
 
     // Group by role
     const groups: Record<string, RoleGroup> = {}
@@ -169,12 +244,45 @@ export default function RecruiterDashboard() {
   const pendingCount = allSubmissions.filter(s => s.status === 'pending_review').length
   const totalCount = allSubmissions.length
 
-  const filteredGroups = roleGroups.map(group => ({
-    ...group,
-    submissions: activeTab === 'pending'
-      ? group.submissions.filter(s => s.status === 'pending_review')
-      : group.submissions,
-  })).filter(group => group.submissions.length > 0)
+  // Roles available in the Role dropdown (only roles that have submissions).
+  const roleOptions = roleGroups.map(g => ({ id: g.role_id, title: g.role_title }))
+
+  // Apply role filter first; status-tab counts reflect the chosen role.
+  const roleScoped = filters.role === 'all'
+    ? allSubmissions
+    : allSubmissions.filter(s => s.role_id === filters.role)
+
+  const statusCounts: Record<StatusFilter, number> = {
+    all: roleScoped.length,
+    pending_review: roleScoped.filter(s => s.status === 'pending_review').length,
+    reviewed: roleScoped.filter(s => s.status === 'reviewed').length,
+    moved_forward: roleScoped.filter(s => s.status === 'moved_forward').length,
+    passed: roleScoped.filter(s => s.status === 'passed').length,
+  }
+
+  const statusScoped = filters.status === 'all'
+    ? roleScoped
+    : roleScoped.filter(s => s.status === filters.status)
+
+  // Client-side sort while under the limit; beyond it, loadSubmissionsPage would
+  // hand sorting/pagination to the server (stub above).
+  const clientSide = totalCount <= CLIENT_SORT_LIMIT
+  const dir = filters.sortDir === 'asc' ? 1 : -1
+  const visibleSubmissions = (clientSide ? [...statusScoped] : statusScoped).sort((a, b) => {
+    if (!clientSide) return 0
+    switch (filters.sortKey) {
+      case 'candidate_name':
+        return dir * (a.candidate_name ?? '').localeCompare(b.candidate_name ?? '')
+      case 'duration':
+        return dir * ((a.duration_s ?? Infinity) - (b.duration_s ?? Infinity))
+      case 'paste_count':
+        return dir * ((a.paste_count ?? 0) - (b.paste_count ?? 0))
+      default: // submitted_at
+        return dir * (new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
+    }
+  })
+
+  const filtersActive = filters.status !== 'all' || filters.role !== 'all'
 
   if (loading) return <div style={styles.loading}>Loading submissions...</div>
 
@@ -296,144 +404,169 @@ export default function RecruiterDashboard() {
       )}
       {totalCount > 0 && (
         <>
-          {/* Tabs */}
-          <div style={styles.tabs}>
-            <button
-              onClick={() => setActiveTab('pending')}
-              style={activeTab === 'pending' ? styles.tabActive : styles.tab}
+          {/* Status filter bar + role dropdown */}
+          <div style={styles.filterBar}>
+            <div style={styles.tabs}>
+              {STATUS_FILTERS.map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => patchFilters({ status: f.key })}
+                  style={filters.status === f.key ? styles.tabActive : styles.tab}
+                >
+                  {f.label}
+                  <span style={filters.status === f.key ? styles.tabBadge : styles.tabBadgeMuted}>
+                    {statusCounts[f.key]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={filters.role}
+              onChange={e => patchFilters({ role: e.target.value })}
+              style={styles.roleSelect}
             >
-              Pending review
-              {pendingCount > 0 && (
-                <span style={styles.tabBadge}>{pendingCount}</span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('all')}
-              style={activeTab === 'all' ? styles.tabActive : styles.tab}
-            >
-              All submissions
-            </button>
+              <option value="all">All roles</option>
+              {roleOptions.map(r => (
+                <option key={r.id} value={r.id}>{r.title}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Submission groups */}
-          {filteredGroups.length === 0 ? (
+          {/* Sort headers */}
+          <div style={styles.sortBar}>
+            <span style={styles.sortLabel}>Sort by</span>
+            {SORT_OPTIONS.map(o => {
+              const active = filters.sortKey === o.key
+              return (
+                <button
+                  key={o.key}
+                  onClick={() => toggleSort(o.key)}
+                  style={active ? { ...styles.sortBtn, ...styles.sortBtnActive } : styles.sortBtn}
+                >
+                  {o.label}
+                  <span style={styles.sortArrow}>{active ? (filters.sortDir === 'asc' ? '▲' : '▼') : '⇅'}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Results */}
+          {visibleSubmissions.length === 0 ? (
             <div style={styles.emptyTab}>
-              No pending submissions — all caught up.
+              <p style={styles.noResultsTitle}>No results</p>
+              <p style={styles.noResultsSub}>No submissions match the current filters.</p>
+              {filtersActive && (
+                <button
+                  onClick={() => patchFilters({ status: 'all', role: 'all' })}
+                  style={styles.clearLink}
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
-            <div style={styles.groups}>
-              {filteredGroups.map(group => (
-                <div key={group.role_id} style={styles.group}>
-                  <div style={styles.groupHeader}>
-                    <h2 style={styles.groupTitle}>{group.role_title}</h2>
-                    <span style={styles.groupCount}>
-                      {group.submissions.length} submission{group.submissions.length !== 1 ? 's' : ''}
-                    </span>
+            <div style={styles.listCard}>
+              {visibleSubmissions.map(sub => (
+                <div key={sub.id} style={styles.subCard}>
+                  <div style={styles.subTop}>
+                    {/* Candidate info */}
+                    <div style={styles.candidateRow}>
+                      <div style={styles.avatar}>
+                        {sub.candidate_photo
+                          ? <img src={sub.candidate_photo} alt="" style={styles.avatarImg} />
+                          : <span style={styles.avatarInitial}>
+                              {sub.candidate_name?.charAt(0).toUpperCase() ?? '?'}
+                            </span>
+                        }
+                      </div>
+                      <div>
+                        <p style={styles.candidateName}>
+                          {sub.candidate_name ?? 'Unknown candidate'}
+                        </p>
+                        <p style={styles.candidateHeadline}>
+                          {sub.role_title} · {sub.candidate_headline ?? 'No headline'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right side */}
+                    <div style={styles.subRight}>
+                      {sub.availability && (
+                        <span style={{
+                          ...styles.availBadge,
+                          color: availabilityColors[sub.availability],
+                        }}>
+                          {availabilityLabels[sub.availability]}
+                        </span>
+                      )}
+                      <span style={styles.subDate}>
+                        Submitted {formatDate(sub.submitted_at)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div style={styles.submissionList}>
-                    {group.submissions.map(sub => (
-                      <div key={sub.id} style={styles.subCard}>
-                        <div style={styles.subTop}>
-                          {/* Candidate info */}
-                          <div style={styles.candidateRow}>
-                            <div style={styles.avatar}>
-                              {sub.candidate_photo
-                                ? <img src={sub.candidate_photo} alt="" style={styles.avatarImg} />
-                                : <span style={styles.avatarInitial}>
-                                    {sub.candidate_name?.charAt(0).toUpperCase() ?? '?'}
-                                  </span>
-                              }
-                            </div>
-                            <div>
-                              <p style={styles.candidateName}>
-                                {sub.candidate_name ?? 'Unknown candidate'}
-                              </p>
-                              <p style={styles.candidateHeadline}>
-                                {sub.candidate_headline ?? 'No headline'}
-                              </p>
-                            </div>
-                          </div>
+                  <div style={styles.subBottom}>
+                    <div style={styles.badgeRow}>
+                      <span style={{ ...styles.statusBadge, ...getStatusStyle(sub.status) }}>
+                        {statusOptions.find(o => o.value === sub.status)?.label}
+                      </span>
 
-                          {/* Right side */}
-                          <div style={styles.subRight}>
-                            {/* Availability */}
-                            {sub.availability && (
-                              <span style={{
-                                ...styles.availBadge,
-                                color: availabilityColors[sub.availability],
-                              }}>
-                                {availabilityLabels[sub.availability]}
-                              </span>
-                            )}
+                      {sub.tests_total != null && sub.tests_total > 0 && (
+                        <span style={{
+                          ...styles.statusBadge,
+                          ...((sub.score ?? 0) >= 1
+                            ? { color: 'var(--color-success-text)', backgroundColor: 'var(--color-success-soft)' }
+                            : { color: 'var(--color-primary-light)', backgroundColor: 'var(--color-primary-soft)' }),
+                        }}>
+                          {sub.tests_passed}/{sub.tests_total} tests · {Math.round((sub.score ?? 0) * 100)}%
+                        </span>
+                      )}
 
-                            {/* Submitted date */}
-                            <span style={styles.subDate}>
-                              Submitted {formatDate(sub.submitted_at)}
-                            </span>
-                          </div>
-                        </div>
+                      {sub.duration_s != null && (
+                        <span style={styles.metaChip}>⏱ {Math.round(sub.duration_s / 60)}m</span>
+                      )}
+                      {sub.paste_count != null && sub.paste_count > 0 && (
+                        <span style={{ ...styles.metaChip, ...styles.metaChipFlag }}>
+                          📋 {sub.paste_count} paste{sub.paste_count !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
 
-                        <div style={styles.subBottom}>
-                          <div style={styles.badgeRow}>
-                            {/* Status badge */}
-                            <span style={{
-                              ...styles.statusBadge,
-                              ...getStatusStyle(sub.status),
-                            }}>
-                              {statusOptions.find(o => o.value === sub.status)?.label}
-                            </span>
+                    {/* Actions */}
+                    <div style={styles.actions}>
+                      <button
+                        onClick={() => navigate(`/recruiter/submissions/${sub.id}/replay`)}
+                        style={styles.replayBtn}
+                      >
+                        Watch replay →
+                      </button>
+                      <button
+                        onClick={() => startThread(sub.candidate_id, sub.role_id)}
+                        style={styles.replayBtn}
+                      >
+                        Message
+                      </button>
 
-                            {/* Score badge */}
-                            {sub.tests_total != null && sub.tests_total > 0 && (
-                              <span style={{
-                                ...styles.statusBadge,
-                                ...((sub.score ?? 0) >= 1
-                                  ? { color: 'var(--color-success-text)', backgroundColor: 'var(--color-success-soft)' }
-                                  : { color: 'var(--color-primary-light)', backgroundColor: 'var(--color-primary-soft)' }),
-                              }}>
-                                {sub.tests_passed}/{sub.tests_total} tests · {Math.round((sub.score ?? 0) * 100)}%
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Actions */}
-                          <div style={styles.actions}>
-                            <button
-                              onClick={() => navigate(`/recruiter/submissions/${sub.id}/replay`)}
-                              style={styles.replayBtn}
-                            >
-                              Watch replay →
-                            </button>
-                            <button
-                              onClick={() => startThread(sub.candidate_id, sub.role_id)}
-                              style={styles.replayBtn}
-                            >
-                              Message
-                            </button>
-
-                            {(() => {
-                              const locked = sub.status === 'pending_review' && !sub.replay_viewed
-                              return (
-                                <select
-                                  value={sub.status}
-                                  onChange={e => updateStatus(sub.id, e.target.value as SubmissionStatus)}
-                                  disabled={updatingId === sub.id || locked}
-                                  title={locked ? 'Watch the replay before changing this status' : ''}
-                                  style={locked ? { ...styles.statusSelect, opacity: 0.5, cursor: 'not-allowed' } : styles.statusSelect}
-                                >
-                                  {statusOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                      {opt.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              )
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      {(() => {
+                        const locked = sub.status === 'pending_review' && !sub.replay_viewed
+                        return (
+                          <select
+                            value={sub.status}
+                            onChange={e => updateStatus(sub.id, e.target.value as SubmissionStatus)}
+                            disabled={updatingId === sub.id || locked}
+                            title={locked ? 'Watch the replay before changing this status' : ''}
+                            style={locked ? { ...styles.statusSelect, opacity: 0.5, cursor: 'not-allowed' } : styles.statusSelect}
+                          >
+                            {statusOptions.map(opt => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        )
+                      })()}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -465,12 +598,77 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statNum: { fontSize: '32px', fontWeight: '600', color: 'var(--color-primary)', fontFamily: 'var(--font-display)' },
   statLabel: { fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: '500' },
+  filterBar: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: '16px',
+    marginBottom: '16px',
+    borderBottom: '1px solid var(--color-border-light)',
+    flexWrap: 'wrap',
+  },
+  roleSelect: {
+    padding: '8px 12px',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '13px',
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    cursor: 'pointer',
+    outline: 'none',
+    fontWeight: '500',
+    marginBottom: '8px',
+    maxWidth: '220px',
+  },
+  sortBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '20px',
+    flexWrap: 'wrap',
+  },
+  sortLabel: { fontSize: '12px', color: 'var(--color-text-tertiary)', fontWeight: '600', marginRight: '2px' },
+  sortBtn: {
+    display: 'flex', alignItems: 'center', gap: '6px',
+    padding: '6px 12px', background: 'transparent',
+    border: '1px solid var(--color-border)', borderRadius: '999px',
+    fontSize: '12px', fontWeight: '500', color: 'var(--color-text-secondary)', cursor: 'pointer',
+  },
+  sortBtnActive: {
+    backgroundColor: 'var(--color-primary-soft)',
+    borderColor: 'var(--color-primary)',
+    color: 'var(--color-primary-light)',
+    fontWeight: '600',
+  },
+  sortArrow: { fontSize: '10px', opacity: 0.8 },
+  listCard: {
+    display: 'flex', flexDirection: 'column',
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
+    overflow: 'hidden',
+    boxShadow: 'var(--shadow-md)',
+  },
+  metaChip: {
+    fontSize: '12px', fontWeight: '500', color: 'var(--color-text-secondary)',
+    background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-light)',
+    padding: '4px 10px', borderRadius: '999px',
+  },
+  metaChipFlag: {
+    color: 'var(--color-error-text)', background: 'var(--color-error-soft)',
+    borderColor: 'var(--color-error)',
+  },
+  noResultsTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 6px' },
+  noResultsSub: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 12px' },
+  clearLink: {
+    background: 'none', border: 'none', color: 'var(--color-primary-light)',
+    fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', padding: 0,
+  },
   tabs: {
     display: 'flex',
     gap: '8px',
-    marginBottom: '24px',
-    borderBottom: '1px solid var(--color-border-light)',
     paddingBottom: '0',
+    flexWrap: 'wrap',
   },
   tab: {
     padding: '12px 16px',
@@ -504,6 +702,14 @@ const styles: Record<string, React.CSSProperties> = {
   tabBadge: {
     backgroundColor: 'var(--color-primary)',
     color: 'var(--color-on-primary)',
+    fontSize: '11px',
+    fontWeight: '600',
+    padding: '2px 8px',
+    borderRadius: '999px',
+  },
+  tabBadgeMuted: {
+    backgroundColor: 'var(--color-bg-tertiary)',
+    color: 'var(--color-text-secondary)',
     fontSize: '11px',
     fontWeight: '600',
     padding: '2px 8px',
