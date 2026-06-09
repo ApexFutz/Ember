@@ -62,6 +62,7 @@ export default function Assessment() {
   const [timeLeft, setTimeLeft] = useState(0)
   const [startedAtMs, setStartedAtMs] = useState<number | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  const [resumed, setResumed] = useState(false)
   const [started, setStarted] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -86,6 +87,32 @@ export default function Assessment() {
   function flashWarning(msg: string) {
     setWarning(msg)
     setTimeout(() => setWarning(w => (w === msg ? null : w)), 8000)
+  }
+
+  // Rebuild file contents by replaying the keystroke log over the seeded
+  // baseline — the log stores deltas (absolute offsets), not full snapshots.
+  function reconstructFiles(seeded: FileTab[], log: LogEntry[]): FileTab[] {
+    const contents: Record<string, string> = {}
+    const order: string[] = []
+    for (const f of seeded) {
+      contents[f.name] = f.content
+      order.push(f.name)
+    }
+    for (const e of log) {
+      if (!(e.file in contents)) {
+        contents[e.file] = ''
+        order.push(e.file)
+      }
+      const c = contents[e.file]
+      const pos = e.position
+      if (e.type === 'insert' || e.type === 'paste') {
+        contents[e.file] = c.slice(0, pos) + e.content + c.slice(pos)
+      } else if (e.type === 'delete') {
+        contents[e.file] = c.slice(0, pos) + c.slice(pos + e.content.length)
+      }
+    }
+    const rebuilt = order.map(name => ({ name, content: contents[name] }))
+    return rebuilt.length > 0 ? rebuilt : seeded
   }
 
 useEffect(() => {
@@ -130,13 +157,23 @@ useEffect(() => {
           : getTemplateFiles(rulesetData?.starter_template)
 
       // Resume an in-progress attempt (survives refresh / navigation away).
-      const { data: inProgress } = await supabase
+      // Order by started_at so that, in the unexpected case of duplicate rows,
+      // we deterministically resume the most recent one.
+      const { data: inProgressRows } = await supabase
         .from('assessments')
-        .select('id, started_at, files')
+        .select('id, started_at')
         .eq('role_id', roleId)
         .eq('candidate_id', user!.id)
         .eq('status', 'in_progress')
-        .maybeSingle()
+        .order('started_at', { ascending: false })
+
+      if (inProgressRows && inProgressRows.length > 1) {
+        console.warn(
+          `Found ${inProgressRows.length} in-progress assessments for role ${roleId}; ` +
+            'resuming the most recent.',
+        )
+      }
+      const inProgress = inProgressRows?.[0] ?? null
 
       if (inProgress) {
         // Server is the source of truth: if this attempt already expired while
@@ -162,15 +199,17 @@ useEffect(() => {
           .maybeSingle()
         if (Array.isArray(logRow?.log)) logs.current = logRow!.log as LogEntry[]
 
+        // assessments.files only persists on submit, so the latest code lives in
+        // the keystroke log — replay the deltas over the seeded baseline.
+        const restored = reconstructFiles(seededFiles(), logs.current)
+
         const startedMs = new Date(inProgress.started_at).getTime()
-        const resumeFiles = Array.isArray(inProgress.files) && inProgress.files.length > 0
-          ? (inProgress.files as FileTab[])
-          : seededFiles()
         setAssessmentId(inProgress.id)
         setStartedAtMs(startedMs)
-        setFiles(resumeFiles)
-        setActiveFile(resumeFiles[0].name)
+        setFiles(restored)
+        setActiveFile(restored[0].name)
         setTimeLeft(Math.max(0, limit - Math.floor((Date.now() - startedMs) / 1000)))
+        setResumed(true)
         setStarted(true)
         setLoading(false)
         return
@@ -537,6 +576,14 @@ useEffect(() => {
       {/* Countdown warning toast (5 min / 1 min). */}
       {warning && !locked && (
         <div style={styles.warnToast}>{warning}</div>
+      )}
+
+      {/* Resume banner */}
+      {resumed && !locked && (
+        <div style={styles.resumeBanner}>
+          <span>↩ Resuming your session — your previous work has been restored.</span>
+          <button onClick={() => setResumed(false)} style={styles.resumeDismiss}>✕</button>
+        </div>
       )}
 
       {/* Top bar */}
@@ -918,6 +965,33 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-secondary)',
     margin: 0,
     lineHeight: 1.5,
+  },
+  resumeBanner: {
+    position: 'fixed',
+    top: '70px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 900,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+    background: 'var(--color-success-soft)',
+    color: 'var(--color-success-text)',
+    border: '1px solid var(--color-success)',
+    borderRadius: 'var(--radius-md)',
+    padding: '10px 14px 10px 18px',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-medium)',
+    boxShadow: 'var(--shadow-lg)',
+  },
+  resumeDismiss: {
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--color-success-text)',
+    cursor: 'pointer',
+    fontSize: 'var(--text-sm)',
+    padding: '0 2px',
+    opacity: 0.7,
   },
   warnToast: {
     position: 'fixed',
