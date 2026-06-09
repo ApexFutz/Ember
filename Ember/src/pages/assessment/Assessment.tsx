@@ -11,6 +11,7 @@ interface Ruleset {
   stack_tags: string[]
   task_type: string
   time_limit_mins: number
+  time_limit_seconds: number | null
   ai_allowed: boolean
   starter_template: string
   tests: { name: string; content: string; hidden: boolean }[]
@@ -57,6 +58,8 @@ export default function Assessment() {
   const [newFileName, setNewFileName] = useState('')
   const [showNewFile, setShowNewFile] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
+  const [startedAtMs, setStartedAtMs] = useState<number | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
   const [started, setStarted] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -72,6 +75,16 @@ export default function Assessment() {
   const lastSave = useRef<number>(Date.now())
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const editorRef = useRef<any>(null)
+  const warned5 = useRef(false)
+  const warned1 = useRef(false)
+
+  // Server-defined limit (seconds). Falls back to the minutes column.
+  const limitSeconds = ruleset ? (ruleset.time_limit_seconds ?? ruleset.time_limit_mins * 60) : 0
+
+  function flashWarning(msg: string) {
+    setWarning(msg)
+    setTimeout(() => setWarning(w => (w === msg ? null : w)), 8000)
+  }
 
 useEffect(() => {
     if (!roleId) return
@@ -104,13 +117,67 @@ useEffect(() => {
       }
 
       if (roleData) setRole(roleData as any)
+      if (rulesetData) setRuleset(rulesetData)
+
+      const limit = rulesetData
+        ? (rulesetData.time_limit_seconds ?? rulesetData.time_limit_mins * 60)
+        : 0
+      const seededFiles = () =>
+        Array.isArray(rulesetData?.codebase) && rulesetData!.codebase.length > 0
+          ? (rulesetData!.codebase as FileTab[])
+          : getTemplateFiles(rulesetData?.starter_template)
+
+      // Resume an in-progress attempt (survives refresh / navigation away).
+      const { data: inProgress } = await supabase
+        .from('assessments')
+        .select('id, started_at, files')
+        .eq('role_id', roleId)
+        .eq('candidate_id', user!.id)
+        .eq('status', 'in_progress')
+        .maybeSingle()
+
+      if (inProgress) {
+        // Server is the source of truth: if this attempt already expired while
+        // the tab was closed, it gets auto-submitted here before we resume.
+        await supabase.rpc('enforce_time_limit', { p_assessment_id: inProgress.id })
+        const { data: nowSubmitted } = await supabase
+          .from('submissions')
+          .select('id')
+          .eq('role_id', roleId)
+          .eq('candidate_id', user!.id)
+          .maybeSingle()
+        if (nowSubmitted) {
+          setAlreadySubmitted(true)
+          setLoading(false)
+          return
+        }
+
+        // Preload prior keystroke log so future saves append rather than wipe it.
+        const { data: logRow } = await supabase
+          .from('assessment_logs')
+          .select('log')
+          .eq('assessment_id', inProgress.id)
+          .maybeSingle()
+        if (Array.isArray(logRow?.log)) logs.current = logRow!.log as LogEntry[]
+
+        const startedMs = new Date(inProgress.started_at).getTime()
+        const resumeFiles = Array.isArray(inProgress.files) && inProgress.files.length > 0
+          ? (inProgress.files as FileTab[])
+          : seededFiles()
+        setAssessmentId(inProgress.id)
+        setStartedAtMs(startedMs)
+        setFiles(resumeFiles)
+        setActiveFile(resumeFiles[0].name)
+        setTimeLeft(Math.max(0, limit - Math.floor((Date.now() - startedMs) / 1000)))
+        setStarted(true)
+        setLoading(false)
+        return
+      }
+
+      // Fresh attempt: seed the editor and wait for the candidate to start.
       if (rulesetData) {
-        setRuleset(rulesetData)
-        setTimeLeft(rulesetData.time_limit_mins * 60)
-        // Prefer the authored multi-file codebase; fall back to the starter template.
-        const seeded = Array.isArray(rulesetData.codebase) && rulesetData.codebase.length > 0
-          ? (rulesetData.codebase as FileTab[])
-          : getTemplateFiles(rulesetData.starter_template)
+        setTimeLeft(limit)
+        const seeded = seededFiles()
         setFiles(seeded)
         setActiveFile(seeded[0].name)
       }
@@ -121,24 +188,32 @@ useEffect(() => {
     load()
   }, [roleId, user])
 
-  // Timer
+  // Timer — derived from the server-anchored started_at, not a local countdown,
+  // so refresh/tab-switch can't extend the limit.
   useEffect(() => {
-    if (!started || locked) return
+    if (!started || locked || startedAtMs == null || !ruleset) return
+    const limit = ruleset.time_limit_seconds ?? ruleset.time_limit_mins * 60
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleTimesUp()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+    const tick = () => {
+      const remaining = Math.max(0, limit - Math.floor((Date.now() - startedAtMs) / 1000))
+      setTimeLeft(remaining)
+      if (remaining <= 300 && remaining > 0 && !warned5.current) {
+        warned5.current = true
+        flashWarning('5 minutes remaining')
+      }
+      if (remaining <= 60 && remaining > 0 && !warned1.current) {
+        warned1.current = true
+        flashWarning('1 minute remaining — your work will be submitted automatically.')
+      }
+      if (remaining <= 0) handleTimesUp()
+    }
 
+    tick()
+    timerRef.current = setInterval(tick, 1000)
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [started, locked])
+  }, [started, locked, startedAtMs, ruleset])
 
   // Auto-save logs every 30 seconds
   useEffect(() => {
@@ -164,7 +239,9 @@ useEffect(() => {
   async function handleStart() {
     if (!user || !roleId || !ruleset) return
 
-    // Create assessment record
+    // Create assessment record. started_at anchors the server-side time limit
+    // and is written exactly once here — never overwritten.
+    const startIso = new Date().toISOString()
     const { data, error } = await supabase
       .from('assessments')
       .insert({
@@ -173,6 +250,7 @@ useEffect(() => {
         status: 'in_progress',
         files: files,
         time_limit_mins: ruleset.time_limit_mins,
+        started_at: startIso,
       })
       .select('id')
       .single()
@@ -183,6 +261,8 @@ useEffect(() => {
     }
 
     setAssessmentId(data.id)
+    setStartedAtMs(new Date(startIso).getTime())
+    setTimeLeft(limitSeconds)
     setStarted(true)
   }
 
@@ -434,6 +514,26 @@ useEffect(() => {
   // Assessment screen
   return (
     <div style={styles.shell}>
+      {/* Time-up overlay — blocks all interaction once the limit is reached. */}
+      {locked && (
+        <div style={styles.timeupOverlay}>
+          <div style={styles.timeupCard}>
+            <div style={styles.timeupIcon}>⏱</div>
+            <h2 style={styles.timeupTitle}>Time's up</h2>
+            <p style={styles.timeupSub}>
+              {submitting
+                ? 'Submitting your work…'
+                : 'The time limit was reached. Your work has been submitted automatically.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Countdown warning toast (5 min / 1 min). */}
+      {warning && !locked && (
+        <div style={styles.warnToast}>{warning}</div>
+      )}
+
       {/* Top bar */}
       <div style={styles.topBar}>
         <div style={styles.topLeft}>
@@ -780,6 +880,54 @@ const styles: Record<string, React.CSSProperties> = {
   },
   timerLow: {
     color: 'var(--color-error)',
+  },
+  timeupOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.72)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    backdropFilter: 'blur(2px)',
+  },
+  timeupCard: {
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
+    padding: '40px 48px',
+    textAlign: 'center',
+    boxShadow: 'var(--shadow-xl)',
+    maxWidth: '380px',
+  },
+  timeupIcon: { fontSize: '40px', marginBottom: '12px' },
+  timeupTitle: {
+    fontSize: 'var(--text-2xl)',
+    fontWeight: 'var(--weight-semibold)',
+    color: 'var(--color-text-primary)',
+    margin: '0 0 8px',
+    fontFamily: 'var(--font-display)',
+  },
+  timeupSub: {
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-text-secondary)',
+    margin: 0,
+    lineHeight: 1.5,
+  },
+  warnToast: {
+    position: 'fixed',
+    top: '70px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 900,
+    background: 'var(--color-error-soft)',
+    color: 'var(--color-error-text)',
+    border: '1px solid var(--color-error)',
+    borderRadius: 'var(--radius-md)',
+    padding: '10px 18px',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-semibold)',
+    boxShadow: 'var(--shadow-lg)',
   },
   topRight: {
     flex: 1,
