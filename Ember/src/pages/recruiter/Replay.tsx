@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { supabase } from '../../lib/supabase'
+import { extractPasteEvents, formatElapsed } from '../../lib/pasteDetection'
 
 interface LogEntry {
   timestamp: number
@@ -218,10 +219,9 @@ export default function Replay() {
     setTimeout(() => setNotesSaved(false), 2000)
   }
 
-  // Count paste events (potential AI usage flags)
-  const pasteSteps = logs
-    .map((log, i) => log.type === 'paste' ? i : -1)
-    .filter(i => i !== -1)
+  // Large-paste events (potential external-code flags), with snippets + timing.
+  const pasteEvents = extractPasteEvents(logs)
+  const startTs = logs[0]?.timestamp ?? 0
 
   function getLanguage(filename: string) {
     if (filename.endsWith('.ts') || filename.endsWith('.tsx')) return 'typescript'
@@ -299,15 +299,16 @@ export default function Replay() {
                 onChange={e => handleScrub(Number(e.target.value))}
                 style={styles.scrubber}
               />
-              {/* Paste markers */}
-              {pasteSteps.map(step => (
+              {/* Large-paste tick marks */}
+              {pasteEvents.map(ev => (
                 <div
-                  key={step}
+                  key={ev.step}
+                  onClick={() => handleScrub(ev.step)}
                   style={{
                     ...styles.pasteMarker,
-                    left: `${(step / logs.length) * 100}%`,
+                    left: `${(ev.step / logs.length) * 100}%`,
                   }}
-                  title={`Paste detected at edit ${step}`}
+                  title={`Large paste — ${ev.charCount} characters at ${formatElapsed(ev.timestamp, startTs)}`}
                 />
               ))}
             </div>
@@ -333,11 +334,36 @@ export default function Replay() {
             </button>
           </div>
 
-          {/* Paste warning */}
-          {pasteSteps.length > 0 && (
-            <div style={styles.pasteWarning}>
-              ⚠️ {pasteSteps.length} large paste event{pasteSteps.length !== 1 ? 's' : ''} detected
-              (marked on the timeline). Review these moments for potential external code.
+          {/* Paste Events panel */}
+          {pasteEvents.length > 0 && (
+            <div style={styles.pastePanel}>
+              <div style={styles.pastePanelHead}>
+                <span style={styles.pastePanelTitle}>Paste Events</span>
+                <span style={styles.pasteCountBadge}>
+                  {pasteEvents.length} paste event{pasteEvents.length !== 1 ? 's' : ''} detected
+                </span>
+              </div>
+              <p style={styles.pastePanelHint}>
+                Marked in red on the timeline. Click an entry to jump to that moment.
+              </p>
+              <div style={styles.pasteList}>
+                {pasteEvents.map(ev => (
+                  <button
+                    key={ev.step}
+                    onClick={() => handleScrub(ev.step)}
+                    style={styles.pasteItem}
+                  >
+                    <div style={styles.pasteItemTop}>
+                      <span style={styles.pasteItemTime}>⏱ {formatElapsed(ev.timestamp, startTs)}</span>
+                      <span style={styles.pasteItemCount}>{ev.charCount} chars</span>
+                      <span style={styles.pasteItemFile}>{ev.file}</span>
+                    </div>
+                    <code style={styles.pasteSnippet}>
+                      {ev.snippet.replace(/\n/g, '↵')}{ev.charCount > ev.snippet.length ? '…' : ''}
+                    </code>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -441,9 +467,9 @@ const styles: Record<string, React.CSSProperties> = {
   scrubberWrapper: { flex: 1, position: 'relative', display: 'flex', alignItems: 'center' },
   scrubber: { width: '100%', cursor: 'pointer', accentColor: 'var(--color-primary)' },
   pasteMarker: {
-    position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-    width: '3px', height: '14px', backgroundColor: 'var(--color-primary)',
-    borderRadius: '1px', pointerEvents: 'none',
+    position: 'absolute', top: '50%', transform: 'translateX(-50%) translateY(-50%)',
+    width: '3px', height: '16px', backgroundColor: 'var(--color-error)',
+    borderRadius: '1px', cursor: 'pointer', zIndex: 2,
   },
   speedControls: { display: 'flex', gap: '4px' },
   speedBtn: {
@@ -458,10 +484,37 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
     background: 'transparent', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 'var(--weight-medium)',
   },
-  pasteWarning: {
-    background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-soft-border)', borderRadius: 'var(--radius-md)',
-    padding: '12px 16px', fontSize: 'var(--text-sm)', color: 'var(--color-primary-light)',
-    marginBottom: '16px', lineHeight: '1.6',
+  pastePanel: {
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)', padding: '20px', marginBottom: '16px',
+  },
+  pastePanelHead: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' },
+  pastePanelTitle: {
+    fontSize: 'var(--text-base)', fontWeight: 'var(--weight-semibold)',
+    color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)',
+  },
+  pasteCountBadge: {
+    fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-error-text)',
+    background: 'var(--color-error-soft)', border: '1px solid var(--color-error)',
+    borderRadius: '999px', padding: '3px 10px',
+  },
+  pastePanelHint: { fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', margin: '0 0 14px' },
+  pasteList: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  pasteItem: {
+    display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
+    background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-light)',
+    borderLeft: '3px solid var(--color-error)', borderRadius: 'var(--radius-md)', padding: '10px 12px',
+  },
+  pasteItemTop: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' },
+  pasteItemTime: {
+    fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)',
+    fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)',
+  },
+  pasteItemCount: { fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-error-text)' },
+  pasteItemFile: { fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginLeft: 'auto' },
+  pasteSnippet: {
+    display: 'block', fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)',
+    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   summaryCard: {
     display: 'flex', gap: '12px', flexWrap: 'wrap',
