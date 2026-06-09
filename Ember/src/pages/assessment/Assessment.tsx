@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { getTemplateFiles, getTemplateLabel } from '../../lib/starterTemplates'
 import type { TestResult } from '../../lib/testHarness'
+import { LARGE_PASTE_THRESHOLD } from '../../lib/pasteDetection'
 
 interface Ruleset {
   task_description: string
@@ -39,6 +40,7 @@ interface LogEntry {
   type: 'insert' | 'delete' | 'paste'
   content: string
   position: number
+  threshold?: number
 }
 
 const DEFAULT_FILE: FileTab = {
@@ -283,13 +285,16 @@ useEffect(() => {
       const now = Date.now()
 
       e.changes.forEach((change: any) => {
-        const isPaste = change.text.length > 100
+        const isPaste = change.text.length > LARGE_PASTE_THRESHOLD
         logs.current.push({
           timestamp: now,
           file: activeFile,
           type: isPaste ? 'paste' : change.text.length > 0 ? 'insert' : 'delete',
           content: change.text,
           position: change.rangeOffset,
+          // Record the threshold in effect when this event was captured, so the
+          // replay can be interpreted correctly even if the constant changes.
+          ...(isPaste ? { threshold: LARGE_PASTE_THRESHOLD } : {}),
         })
       })
     })
