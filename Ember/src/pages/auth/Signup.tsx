@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { checkInviteCode, redeemInviteCode } from '../../lib/founding'
 
 export default function Signup() {
   const navigate = useNavigate()
@@ -8,6 +9,7 @@ export default function Signup() {
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<'recruiter' | 'candidate'>('candidate')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -18,6 +20,18 @@ export default function Signup() {
     if (password.length < 8) {
       setError('Password must be at least 8 characters')
       return
+    }
+
+    const code = inviteCode.trim()
+    const useCode = role === 'recruiter' && code.length > 0
+
+    // Validate the founding code before creating an account (no orphan accounts).
+    if (useCode) {
+      const valid = await checkInviteCode(code)
+      if (!valid) {
+        setError("That code isn't valid. Apply at ember.dev.")
+        return
+      }
     }
 
     setLoading(true)
@@ -42,6 +56,11 @@ export default function Signup() {
         .from('profiles')
         .update({ full_name: fullName })
         .eq('id', user.id)
+    }
+
+    // Consume the founding code + set the flag (best-effort; account already created).
+    if (useCode) {
+      try { await redeemInviteCode(code) } catch { /* lost a redemption race — not founding */ }
     }
 
     if (role === 'recruiter') {
@@ -97,6 +116,19 @@ export default function Signup() {
                 </button>
               </div>
             </div>
+
+            {role === 'recruiter' && (
+              <div style={styles.field}>
+                <label style={styles.label}>Invite code <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(optional)</span></label>
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={e => setInviteCode(e.target.value)}
+                  placeholder="Founding recruiter code"
+                  style={styles.input}
+                />
+              </div>
+            )}
 
             <div style={styles.field}>
               <label style={styles.label}>Full name</label>

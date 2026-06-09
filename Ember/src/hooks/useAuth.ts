@@ -17,6 +17,8 @@ interface Profile {
   portfolio_url?: string | null
   recruiter_linkedin_url?: string | null
   job_title?: string | null
+  founding_recruiter?: boolean
+  has_seen_welcome?: boolean
 }
 
 interface AuthState {
