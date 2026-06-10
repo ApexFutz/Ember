@@ -32,6 +32,35 @@ interface Score {
   metrics: { edit_count?: number; paste_count?: number; duration_s?: number | null } | null
 }
 
+interface StatusEvent {
+  id: string
+  from_status: string | null
+  to_status: string
+  changed_at: string
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending_review: 'Pending',
+  reviewed: 'Reviewed',
+  moved_forward: 'Advanced',
+  passed: 'Rejected',
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const s = Math.floor(diff / 1000)
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m} minute${m !== 1 ? 's' : ''} ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h} hour${h !== 1 ? 's' : ''} ago`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `${d} day${d !== 1 ? 's' : ''} ago`
+  const mo = Math.floor(d / 30)
+  if (mo < 12) return `${mo} month${mo !== 1 ? 's' : ''} ago`
+  return `${Math.floor(mo / 12)} year${Math.floor(mo / 12) !== 1 ? 's' : ''} ago`
+}
+
 export default function Replay() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -50,6 +79,7 @@ export default function Replay() {
   const [displayContent, setDisplayContent] = useState('')
   const [activeReplayFile, setActiveReplayFile] = useState('')
   const [autoSubmitted, setAutoSubmitted] = useState(false)
+  const [statusEvents, setStatusEvents] = useState<StatusEvent[]>([])
 
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -80,6 +110,14 @@ export default function Replay() {
           .eq('id', id)
           .single()
         if (scoreData) setScore(scoreData)
+
+        // Status history timeline (chronological).
+        const { data: events } = await supabase
+          .from('status_events')
+          .select('id, from_status, to_status, changed_at')
+          .eq('submission_id', id)
+          .order('changed_at', { ascending: true })
+        if (events) setStatusEvents(events)
 
         // Load the assessment logs
         const { data: logData } = await supabase
@@ -251,6 +289,30 @@ export default function Replay() {
           <span style={styles.autoBadge}>⏱ Auto-submitted — time expired</span>
         )}
       </div>
+
+      {statusEvents.length > 0 && (
+        <div style={styles.timelineCard}>
+          <p style={styles.timelineLabel}>Status history</p>
+          <div style={styles.timeline}>
+            {statusEvents.map((ev, i) => (
+              <div key={ev.id} style={styles.timelineRow}>
+                <div style={styles.timelineMarker}>
+                  <span style={{ ...styles.timelineDot, ...(i === statusEvents.length - 1 ? styles.timelineDotActive : {}) }} />
+                  {i < statusEvents.length - 1 && <span style={styles.timelineLine} />}
+                </div>
+                <div style={styles.timelineContent}>
+                  <span style={styles.timelineStatus}>
+                    {ev.from_status ? '→ ' : ''}{STATUS_LABELS[ev.to_status] ?? ev.to_status}
+                  </span>
+                  <span style={styles.timelineTime} title={new Date(ev.changed_at).toLocaleString()}>
+                    {relativeTime(ev.changed_at)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {logs.length === 0 ? (
         <div style={styles.noLogs}>
@@ -481,6 +543,26 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-error-text)', background: 'var(--color-error-soft)', border: '1px solid var(--color-error)',
     borderRadius: '999px', padding: '4px 12px', letterSpacing: '0.02em',
   },
+  timelineCard: {
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)', padding: '20px 24px', marginBottom: '24px', boxShadow: 'var(--shadow-md)',
+  },
+  timelineLabel: {
+    fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase',
+    color: 'var(--color-text-tertiary)', margin: '0 0 16px',
+  },
+  timeline: { display: 'flex', flexDirection: 'column' },
+  timelineRow: { display: 'flex', gap: '14px', minHeight: '40px' },
+  timelineMarker: { display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 },
+  timelineDot: {
+    width: '12px', height: '12px', borderRadius: '50%', marginTop: '2px',
+    background: 'var(--color-bg-tertiary)', border: '2px solid var(--color-border)',
+  },
+  timelineDotActive: { background: 'var(--color-primary)', borderColor: 'var(--color-primary)' },
+  timelineLine: { flex: 1, width: '2px', background: 'var(--color-border-light)', margin: '2px 0' },
+  timelineContent: { display: 'flex', flexDirection: 'column', gap: '2px', paddingBottom: '16px' },
+  timelineStatus: { fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' },
+  timelineTime: { fontSize: '12px', color: 'var(--color-text-secondary)', cursor: 'default' },
   noLogs: {
     padding: '40px', textAlign: 'center', fontSize: '14px', color: 'var(--color-text-secondary)',
     background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)',
