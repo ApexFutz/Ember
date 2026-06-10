@@ -236,6 +236,13 @@ export default function RecruiterRoles() {
                   {role.status === 'draft' ? 'Edit ruleset' : 'View ruleset'}
                 </button>
 
+                <button
+                  onClick={() => navigate(`/recruiter/roles/${role.id}/analytics`)}
+                  style={styles.actionBtn}
+                >
+                  View Analytics
+                </button>
+
                 {role.status === 'draft' && (
                   <button
                     onClick={() => requestPublish(role)}
