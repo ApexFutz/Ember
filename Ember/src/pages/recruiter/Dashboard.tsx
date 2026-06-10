@@ -104,10 +104,11 @@ function formatDate(dateStr: string) {
 }
 
 export default function RecruiterDashboard() {
-  const { user } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const { guard } = useDemo()
   const navigate = useNavigate()
   const [roleGroups, setRoleGroups] = useState<RoleGroup[]>([])
+  const [onboarding, setOnboarding] = useState<{ roles: { id: string; status: string }[]; rulesetCount: number }>({ roles: [], rulesetCount: 0 })
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<DashboardFilters>(loadFilters)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -223,7 +224,30 @@ export default function RecruiterDashboard() {
     }
 
     setRoleGroups(Object.values(groups))
+
+    // Onboarding checklist inputs: does the recruiter have roles / rulesets yet?
+    const { data: rolesData } = await supabase
+      .from('roles')
+      .select('id, status')
+      .eq('recruiter_id', user!.id)
+    const roleIds = (rolesData ?? []).map(r => r.id)
+    let rulesetCount = 0
+    if (roleIds.length > 0) {
+      const { count } = await supabase
+        .from('rulesets')
+        .select('role_id', { count: 'exact', head: true })
+        .in('role_id', roleIds)
+      rulesetCount = count ?? 0
+    }
+    setOnboarding({ roles: rolesData ?? [], rulesetCount })
+
     setLoading(false)
+  }
+
+  async function dismissOnboarding() {
+    if (guard() || !user) return
+    await supabase.from('profiles').update({ onboarding_dismissed: true }).eq('id', user.id)
+    await refreshProfile()
   }
 
   async function updateStatus(submissionId: string, status: SubmissionStatus) {
@@ -280,6 +304,16 @@ export default function RecruiterDashboard() {
   const allSubmissions = roleGroups.flatMap(g => g.submissions)
   const pendingCount = allSubmissions.filter(s => s.status === 'pending_review').length
   const totalCount = allSubmissions.length
+
+  // Onboarding checklist — shown only to recruiters with no submissions yet.
+  const onboardingSteps = [
+    { label: 'Complete your profile', done: !!(profile?.full_name && profile?.company_name), to: '/recruiter/profile' },
+    { label: 'Post your first role', done: onboarding.roles.length > 0, to: '/recruiter/roles/new' },
+    { label: 'Build a ruleset for that role', done: onboarding.rulesetCount > 0, to: '/recruiter/roles' },
+    { label: 'Share your role link with candidates', done: onboarding.roles.some(r => r.status === 'active'), to: '/recruiter/roles' },
+  ]
+  const onboardingDone = onboardingSteps.every(s => s.done)
+  const showChecklist = totalCount === 0 && !profile?.onboarding_dismissed
 
   // Roles available in the Role dropdown (only roles that have submissions).
   const roleOptions = roleGroups.map(g => ({ id: g.role_id, title: g.role_title }))
@@ -433,6 +467,44 @@ export default function RecruiterDashboard() {
           </div>
         )}
       </div>
+        {showChecklist && (
+          <div style={styles.checklist}>
+            <div style={styles.checklistHead}>
+              <div>
+                <p style={styles.checklistTitle}>Get set up</p>
+                <p style={styles.checklistSub}>
+                  {onboardingDone
+                    ? 'All done — you\'re ready to receive candidates.'
+                    : 'A few quick steps to start receiving verified candidates.'}
+                </p>
+              </div>
+              <button
+                onClick={dismissOnboarding}
+                style={onboardingDone ? styles.dismissBtnReady : styles.dismissBtn}
+              >
+                Dismiss
+              </button>
+            </div>
+            <div style={styles.steps}>
+              {onboardingSteps.map(step => (
+                <button
+                  key={step.label}
+                  onClick={() => navigate(step.to)}
+                  style={styles.stepRow}
+                >
+                  <span style={{ ...styles.stepCheck, ...(step.done ? styles.stepCheckDone : {}) }}>
+                    {step.done ? '✓' : ''}
+                  </span>
+                  <span style={{ ...styles.stepLabel, ...(step.done ? styles.stepLabelDone : {}) }}>
+                    {step.label}
+                  </span>
+                  {!step.done && <span style={styles.stepArrow}>→</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {totalCount === 0 && (
         <EmptyState
           title="No submissions yet"
@@ -632,6 +704,38 @@ export default function RecruiterDashboard() {
 const styles: Record<string, React.CSSProperties> = {
   page: { maxWidth: '900px' },
   loading: { padding: '2rem', color: 'var(--color-text-secondary)', fontSize: '14px' },
+  checklist: {
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)', padding: '24px', boxShadow: 'var(--shadow-md)', marginBottom: '24px',
+  },
+  checklistHead: {
+    display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '18px',
+  },
+  checklistTitle: { fontSize: '16px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 4px', fontFamily: 'var(--font-display)' },
+  checklistSub: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 },
+  dismissBtn: {
+    flexShrink: 0, padding: '7px 14px', background: 'transparent', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '500', color: 'var(--color-text-tertiary)', cursor: 'pointer',
+  },
+  dismissBtnReady: {
+    flexShrink: 0, padding: '7px 14px', background: 'var(--color-primary)', border: '1px solid var(--color-primary)',
+    borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600', color: 'var(--color-on-primary)', cursor: 'pointer',
+  },
+  steps: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  stepRow: {
+    display: 'flex', alignItems: 'center', gap: '12px', width: '100%', textAlign: 'left',
+    padding: '11px 14px', background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-light)',
+    borderRadius: 'var(--radius-md)', cursor: 'pointer',
+  },
+  stepCheck: {
+    width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+    border: '2px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '12px', fontWeight: '700', color: 'var(--color-on-primary)',
+  },
+  stepCheckDone: { background: 'var(--color-success)', borderColor: 'var(--color-success)' },
+  stepLabel: { flex: 1, fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '500' },
+  stepLabelDone: { color: 'var(--color-text-tertiary)', textDecoration: 'line-through' },
+  stepArrow: { color: 'var(--color-text-tertiary)', fontSize: '14px' },
   header: { marginBottom: '32px' },
   title: { fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 var(--space-2)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: 'var(--text-base)', color: 'var(--color-text-secondary)', margin: '0 0 var(--space-6)' },
