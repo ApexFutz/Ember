@@ -54,6 +54,9 @@ function AppRoutes() {
       {/* Public shareable candidate profile — no auth */}
       <Route path="/c/:username" element={<PublicProfile />} />
 
+      {/* Pricing alias → the recruiter billing/pricing page (auth-gated there) */}
+      <Route path="/pricing" element={<Navigate to="/recruiter/billing" replace />} />
+
       {/* Admin — auth required; page itself gates on is_admin() */}
       <Route path="/admin" element={
         <ProtectedRoute>

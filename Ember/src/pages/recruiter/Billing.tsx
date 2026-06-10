@@ -1,5 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Check, X, TrendingUp, Zap, Target, Crown, ArrowRight, HelpCircle, type LucideIcon } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
+import { useDemo } from '../../hooks/useDemo'
 
 interface Feature { text: string; included: boolean }
 interface Tier {
@@ -97,8 +100,27 @@ const faqs = [
 ]
 
 export default function Billing() {
+  const { user, profile } = useAuth()
+  const { guard } = useDemo()
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly')
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
+  const [confirmedTier, setConfirmedTier] = useState<string | null>(null)
+  const isFounding = !!profile?.founding_recruiter
+
+  // Track unique-ish pricing page views for the demand-signal funnel.
+  useEffect(() => {
+    if (!user) return
+    supabase.from('page_views').insert({ user_id: user.id, page: 'pricing' }).then(() => {})
+  }, [user])
+
+  // CTA → capture billing intent + which tier, then confirm.
+  async function registerInterest(planTier: string) {
+    if (guard()) return
+    if (!user) return
+    await supabase.from('billing_interest').insert({ user_id: user.id, plan_tier: planTier })
+    setConfirmedTier(planTier)
+    setTimeout(() => setConfirmedTier(null), 6000)
+  }
 
   const exampleHires = 5
   const exampleSalary = 120000
@@ -118,6 +140,19 @@ export default function Billing() {
       </div>
 
       <div style={styles.content}>
+        {isFounding && (
+          <div style={styles.foundingBanner}>
+            <Crown size={18} color="var(--color-primary)" style={{ flexShrink: 0 }} />
+            <span>You're locked in as a <strong>Founding Recruiter</strong> — your rate is grandfathered, with no per-hire fee for your first 6 months.</span>
+          </div>
+        )}
+
+        {confirmedTier && (
+          <div style={styles.confirmBanner}>
+            ✓ Thanks for your interest in <strong>{confirmedTier}</strong> — we'll be in touch within 24 hours.
+          </div>
+        )}
+
         {/* Header */}
         <div style={styles.header}>
           <div style={styles.eyebrow}>SIMPLE, TRANSPARENT PRICING</div>
@@ -176,9 +211,14 @@ export default function Billing() {
                   )}
                 </div>
 
-                <button style={tier.highlighted ? styles.ctaHi : styles.cta}>
-                  {tier.cta} <ArrowRight size={16} />
-                </button>
+                {!isFounding && (
+                  <button
+                    onClick={() => registerInterest(tier.name)}
+                    style={tier.highlighted ? styles.ctaHi : styles.cta}
+                  >
+                    {tier.cta} <ArrowRight size={16} />
+                  </button>
+                )}
 
                 <div style={styles.features}>
                   {tier.features.map((f, i) => (
@@ -247,7 +287,13 @@ export default function Billing() {
           <div style={styles.ctaFooter}>
             <h2 style={styles.h2}>Ready to hire better engineers?</h2>
             <p style={styles.lede}>Start a free 14-day trial. No credit card required. See how Ember can transform your hiring process.</p>
-            <button style={styles.ctaHi}>Start Free Trial <ArrowRight size={16} /></button>
+            {isFounding ? (
+              <p style={{ ...styles.lede, margin: 0 }}>You're already in as a Founding Recruiter. 🎉</p>
+            ) : (
+              <button onClick={() => registerInterest('Free Trial')} style={styles.ctaHi}>
+                Start Free Trial <ArrowRight size={16} />
+              </button>
+            )}
             <p style={styles.footnote}>14-day free trial. Cancel anytime. Full access to all features.</p>
           </div>
         </div>
@@ -267,6 +313,17 @@ const styles: Record<string, React.CSSProperties> = {
   blob: { position: 'absolute', width: '360px', height: '360px', borderRadius: '50%', filter: 'blur(70px)' },
   content: { position: 'relative', zIndex: 1, maxWidth: '1100px', margin: '0 auto' },
 
+  foundingBanner: {
+    display: 'flex', alignItems: 'center', gap: '12px', maxWidth: '760px', margin: '0 auto 24px',
+    padding: '14px 18px', borderRadius: 'var(--radius-md)', background: 'var(--color-primary-soft)',
+    border: '1px solid var(--color-primary-soft-border)', color: 'var(--color-text-primary)',
+    fontSize: '14px', lineHeight: 1.5,
+  },
+  confirmBanner: {
+    maxWidth: '760px', margin: '0 auto 24px', padding: '14px 18px', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-success-soft)', border: '1px solid var(--color-success)',
+    color: 'var(--color-success-text)', fontSize: '14px', textAlign: 'center',
+  },
   header: { textAlign: 'center', maxWidth: '760px', margin: '0 auto 48px' },
   eyebrow: { display: 'inline-block', marginBottom: '16px', padding: '6px 14px', borderRadius: '999px', background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-soft-border)', color: ORANGE, fontSize: '12px', fontWeight: 600, letterSpacing: '0.08em' },
   h1: { fontSize: '44px', lineHeight: 1.1, fontWeight: 700, margin: '0 0 20px', fontFamily: 'var(--font-display)', background: GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' },
