@@ -12,8 +12,13 @@
  * Idempotent: every entity is matched on a natural key (email, title, FK pair)
  * and reused if it already exists, so running it repeatedly never duplicates rows.
  */
-import 'dotenv/config'
+import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
+
+// Load the root .env (for SUPABASE_SERVICE_ROLE_KEY) and the app's Ember/.env
+// (for the project URL via VITE_SUPABASE_URL). Root values take precedence.
+dotenv.config()
+dotenv.config({ path: 'Ember/.env' })
 
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
