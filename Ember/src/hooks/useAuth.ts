@@ -20,6 +20,7 @@ interface Profile {
   founding_recruiter?: boolean
   has_seen_welcome?: boolean
   email_notifications?: boolean
+  onboarding_dismissed?: boolean
 }
 
 interface AuthState {
