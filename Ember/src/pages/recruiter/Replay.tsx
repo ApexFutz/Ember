@@ -20,6 +20,7 @@ interface FileTab {
 interface SubmissionDetail {
   candidate_name: string | null
   candidate_headline: string | null
+  candidate_id: string
   role_title: string
   assessment_id: string
   recruiter_notes: string | null
@@ -80,6 +81,7 @@ export default function Replay() {
   const [activeReplayFile, setActiveReplayFile] = useState('')
   const [autoSubmitted, setAutoSubmitted] = useState(false)
   const [statusEvents, setStatusEvents] = useState<StatusEvent[]>([])
+  const [skills, setSkills] = useState<string[]>([])
 
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -89,13 +91,23 @@ export default function Replay() {
       // Load submission details
       const { data: subData } = await supabase
         .from('submission_details')
-        .select('candidate_name, candidate_headline, role_title, assessment_id, recruiter_notes')
+        .select('candidate_name, candidate_headline, candidate_id, role_title, assessment_id, recruiter_notes')
         .eq('id', id)
         .single()
 
       if (subData) {
         setSubmission(subData)
         setNotes(subData.recruiter_notes ?? '')
+
+        // Candidate skills for at-a-glance tech stack.
+        if (subData.candidate_id) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('skills')
+            .eq('id', subData.candidate_id)
+            .maybeSingle()
+          if (Array.isArray(prof?.skills)) setSkills(prof!.skills)
+        }
 
         // Mark this submission's replay as viewed (unlocks status changes on the dashboard).
         await supabase
@@ -285,6 +297,13 @@ export default function Replay() {
         <p style={styles.subtitle}>
           {submission?.candidate_headline} · {submission?.role_title}
         </p>
+        <div style={styles.skillRow}>
+          {skills.length > 0 ? (
+            skills.map(sk => <span key={sk} style={styles.skillChip}>{sk}</span>)
+          ) : (
+            <span style={styles.noSkills}>No skills listed</span>
+          )}
+        </div>
         {autoSubmitted && (
           <span style={styles.autoBadge}>⏱ Auto-submitted — time expired</span>
         )}
@@ -538,6 +557,13 @@ const styles: Record<string, React.CSSProperties> = {
   header: { marginBottom: '24px' },
   title: { fontSize: 'var(--text-3xl)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', margin: '0 0 4px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' },
   subtitle: { fontSize: 'var(--text-base)', color: 'var(--color-text-secondary)', margin: 0 },
+  skillRow: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' },
+  skillChip: {
+    fontSize: '12px', fontWeight: '500', color: 'var(--color-text-secondary)',
+    background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-light)',
+    borderRadius: '999px', padding: '3px 11px',
+  },
+  noSkills: { fontSize: '12px', color: 'var(--color-text-tertiary)', fontStyle: 'italic' },
   autoBadge: {
     display: 'inline-block', marginTop: '10px', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
     color: 'var(--color-error-text)', background: 'var(--color-error-soft)', border: '1px solid var(--color-error)',
