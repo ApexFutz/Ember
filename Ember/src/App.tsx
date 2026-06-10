@@ -20,6 +20,7 @@ import CandidateRoles from './pages/candidate/Roles'
 import Assessment from './pages/assessment/Assessment.tsx'
 import RecruiterDashboard from './pages/recruiter/Dashboard.tsx'
 import Replay from './pages/recruiter/Replay.tsx'
+import RoleAnalytics from './pages/recruiter/RoleAnalytics.tsx'
 import Messages from './pages/messages/Messages.tsx'
 import CandidateAssessments from './pages/candidate/Assessments.tsx'
 import CandidateSkills from './pages/candidate/Skills.tsx'
@@ -86,6 +87,7 @@ function AppRoutes() {
         <Route path="organization" element={<Organization />} />
         <Route path="roles/new" element={<NewRole />} />
         <Route path="roles/:id/ruleset" element={<Ruleset />} />
+        <Route path="roles/:roleId/analytics" element={<RoleAnalytics />} />
         <Route path="messages" element={<Messages />} />
         <Route path="profile" element={<RecruiterProfile />} />
         <Route path="submissions/:id/replay" element={<Replay />} />
