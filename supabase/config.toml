@@ -6,3 +6,8 @@ project_id = "ember"
 # `supabase db push` against the linked remote.
 port = 54322
 major_version = 15
+
+# Called by database webhooks (pg_net), not end users — it guards itself with a
+# shared secret (NOTIFY_WEBHOOK_SECRET) and serves a public unsubscribe GET.
+[functions.send-notification-email]
+verify_jwt = false

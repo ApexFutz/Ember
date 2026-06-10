@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationToggle from '../../components/NotificationToggle'
 
 type Availability = 'available' | 'open' | 'not_looking'
 
@@ -173,6 +174,8 @@ export default function CandidateProfile() {
 
       {error && <div style={styles.error}>{error}</div>}
       {saved && <div style={styles.success}>Profile saved successfully.</div>}
+
+      <NotificationToggle />
 
       <div style={styles.grid}>
         {/* Left column */}

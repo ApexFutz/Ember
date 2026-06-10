@@ -19,6 +19,7 @@ interface Profile {
   job_title?: string | null
   founding_recruiter?: boolean
   has_seen_welcome?: boolean
+  email_notifications?: boolean
 }
 
 interface AuthState {
