@@ -5,7 +5,7 @@ export const LARGE_PASTE_THRESHOLD = 50
 export interface PasteLogEntry {
   timestamp: number
   file: string
-  type: 'insert' | 'delete' | 'paste'
+  type: 'insert' | 'delete' | 'paste' | 'focus_loss'
   content: string
   position: number
 }
@@ -33,6 +33,20 @@ export function extractPasteEvents(logs: PasteLogEntry[]): PasteEvent[] {
         file: e.file,
       })
     }
+  })
+  return events
+}
+
+export interface FocusEvent {
+  step: number // index into the log array — used for scrubber position + seek
+  timestamp: number
+}
+
+/** Pull every focus-loss event (tab switch / window blur) out of a keystroke log. */
+export function extractFocusEvents(logs: PasteLogEntry[]): FocusEvent[] {
+  const events: FocusEvent[] = []
+  logs.forEach((e, i) => {
+    if (e.type === 'focus_loss') events.push({ step: i, timestamp: e.timestamp })
   })
   return events
 }

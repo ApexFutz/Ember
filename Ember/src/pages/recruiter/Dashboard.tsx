@@ -26,6 +26,7 @@ interface Submission {
   replay_viewed: boolean
   duration_s: number | null
   paste_count: number | null
+  focus_loss_count: number
 }
 
 // Recruiter-facing status filters (maps the DB statuses to demo-friendly labels).
@@ -38,12 +39,13 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'passed', label: 'Rejected' },
 ]
 
-type SortKey = 'submitted_at' | 'candidate_name' | 'duration' | 'paste_count'
+type SortKey = 'submitted_at' | 'candidate_name' | 'duration' | 'paste_count' | 'focus_loss'
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'submitted_at', label: 'Submitted' },
   { key: 'candidate_name', label: 'Candidate' },
   { key: 'duration', label: 'Completion time' },
   { key: 'paste_count', label: 'Paste events' },
+  { key: 'focus_loss', label: 'Focus losses' },
 ]
 
 // Above this count we'd switch to server-side pagination (see loadSubmissionsPage).
@@ -166,11 +168,28 @@ export default function RecruiterDashboard() {
         metricsById.set(f.id, f.metrics)
       }
     }
+    // Focus-loss counts derived straight from the keystroke logs (no metrics column).
+    const focusByAssessment = new Map<string, number>()
+    const assessmentIds = rows.map((s: any) => s.assessment_id).filter(Boolean)
+    if (assessmentIds.length > 0) {
+      const { data: logRows } = await supabase
+        .from('assessment_logs')
+        .select('assessment_id, log')
+        .in('assessment_id', assessmentIds)
+      for (const lr of logRows ?? []) {
+        const count = Array.isArray(lr.log)
+          ? lr.log.filter((e: any) => e.type === 'focus_loss').length
+          : 0
+        focusByAssessment.set(lr.assessment_id, count)
+      }
+    }
+
     for (const s of rows) {
       (s as any).replay_viewed = viewed.has(s.id)
       const m = metricsById.get(s.id)
       ;(s as any).duration_s = m?.duration_s ?? null
       ;(s as any).paste_count = m?.paste_count ?? null
+      ;(s as any).focus_loss_count = focusByAssessment.get((s as any).assessment_id) ?? 0
     }
 
     // Group by role
@@ -277,6 +296,8 @@ export default function RecruiterDashboard() {
         return dir * ((a.duration_s ?? Infinity) - (b.duration_s ?? Infinity))
       case 'paste_count':
         return dir * ((a.paste_count ?? 0) - (b.paste_count ?? 0))
+      case 'focus_loss':
+        return dir * (a.focus_loss_count - b.focus_loss_count)
       default: // submitted_at
         return dir * (new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
     }
@@ -531,6 +552,11 @@ export default function RecruiterDashboard() {
                           📋 {sub.paste_count} paste{sub.paste_count !== 1 ? 's' : ''}
                         </span>
                       )}
+                      {sub.focus_loss_count > 0 && (
+                        <span style={{ ...styles.metaChip, ...styles.metaChipFocus }}>
+                          👁 {sub.focus_loss_count} focus loss{sub.focus_loss_count !== 1 ? 'es' : ''}
+                        </span>
+                      )}
                     </div>
 
                     {/* Actions */}
@@ -657,6 +683,10 @@ const styles: Record<string, React.CSSProperties> = {
   metaChipFlag: {
     color: 'var(--color-error-text)', background: 'var(--color-error-soft)',
     borderColor: 'var(--color-error)',
+  },
+  metaChipFocus: {
+    color: 'var(--color-warning-text, #92400e)', background: 'var(--color-warning-soft, #fef3c7)',
+    borderColor: 'var(--color-warning, #f59e0b)',
   },
   noResultsTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 6px' },
   noResultsSub: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 12px' },
