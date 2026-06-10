@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useDemo } from '../hooks/useDemo'
 import { supabase } from '../lib/supabase'
 import WelcomeModal from './WelcomeModal'
 import { markWelcomeSeen } from '../lib/founding'
 
 export default function Layout() {
   const { profile, isRecruiter, refreshProfile } = useAuth()
+  const { isDemo, goSignup } = useDemo()
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const showWelcome = !!profile?.founding_recruiter && !profile?.has_seen_welcome
@@ -83,13 +85,23 @@ export default function Layout() {
 
   const navItems = isRecruiter ? recruiterNav : candidateNav
 
+  const DEMO_BAR = 44
+
   return (
     <div style={styles.shell}>
+      {isDemo && (
+        <div style={styles.demoBanner}>
+          <span style={styles.demoBannerText}>
+            You're in demo mode — no account needed.
+          </span>
+          <button onClick={goSignup} style={styles.demoBannerCta}>Sign up free →</button>
+        </div>
+      )}
       {showWelcome && (
         <WelcomeModal onDismiss={async () => { await markWelcomeSeen(); await refreshProfile() }} />
       )}
       {/* Sidebar */}
-      <aside style={styles.sidebar}>
+      <aside style={{ ...styles.sidebar, ...(isDemo ? { top: DEMO_BAR, height: `calc(100vh - ${DEMO_BAR}px)` } : {}) }}>
         {/* Logo */}
         <div style={styles.logo}>
           <span style={styles.logoText}>Ember</span>
@@ -151,7 +163,7 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <main style={styles.main}>
+      <main style={{ ...styles.main, ...(isDemo ? { paddingTop: 48 + DEMO_BAR } : {}) }}>
         <Outlet />
       </main>
     </div>
@@ -163,6 +175,17 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     minHeight: '100vh',
     backgroundColor: 'var(--color-bg-primary)',
+  },
+  demoBanner: {
+    position: 'fixed', top: 0, left: 0, right: 0, height: '44px', zIndex: 2000,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px',
+    background: 'var(--color-primary)', color: 'var(--color-on-primary)',
+    fontSize: '14px', fontWeight: 600,
+  },
+  demoBannerText: { letterSpacing: '0.01em' },
+  demoBannerCta: {
+    background: 'var(--color-on-primary)', color: 'var(--color-primary)', border: 'none',
+    borderRadius: '999px', padding: '5px 14px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
   },
   sidebar: {
     width: '256px',

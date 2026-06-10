@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { supabase } from '../../lib/supabase'
+import { useDemo } from '../../hooks/useDemo'
 import { extractPasteEvents, extractFocusEvents, formatElapsed } from '../../lib/pasteDetection'
 
 interface LogEntry {
@@ -65,6 +66,7 @@ function relativeTime(iso: string): string {
 export default function Replay() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { isDemo, guard } = useDemo()
 
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null)
   const [score, setScore] = useState<Score | null>(null)
@@ -109,11 +111,14 @@ export default function Replay() {
           if (Array.isArray(prof?.skills)) setSkills(prof!.skills)
         }
 
-        // Mark this submission's replay as viewed (unlocks status changes on the dashboard).
-        await supabase
-          .from('submissions')
-          .update({ replay_viewed: true })
-          .eq('id', id)
+        // Mark this submission's replay as viewed (unlocks status changes on the
+        // dashboard). Skipped in demo (read-only; server would block it anyway).
+        if (!isDemo) {
+          await supabase
+            .from('submissions')
+            .update({ replay_viewed: true })
+            .eq('id', id)
+        }
 
         // Load scoring + metrics for this submission
         const { data: scoreData } = await supabase
@@ -260,6 +265,7 @@ export default function Replay() {
 
   async function saveNotes() {
     if (!id) return
+    if (guard()) return
     setSavingNotes(true)
     await supabase
       .from('submissions')

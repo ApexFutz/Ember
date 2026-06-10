@@ -11,3 +11,7 @@ major_version = 15
 # shared secret (NOTIFY_WEBHOOK_SECRET) and serves a public unsubscribe GET.
 [functions.send-notification-email]
 verify_jwt = false
+
+# Public entry point for guest demo sessions — no auth required to start one.
+[functions.create-demo-session]
+verify_jwt = false

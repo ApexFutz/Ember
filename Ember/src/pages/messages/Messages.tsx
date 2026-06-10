@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useDemo } from '../../hooks/useDemo'
 
 interface Thread {
   id: string
@@ -36,6 +37,7 @@ function formatTime(dateStr: string) {
 
 export default function Messages() {
   const { user, profile, isRecruiter } = useAuth()
+  const { guard } = useDemo()
   const [threads, setThreads] = useState<Thread[]>([])
   const [activeThread, setActiveThread] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -164,6 +166,7 @@ export default function Messages() {
 
   async function handleSend() {
     if (!newMessage.trim() || !activeThread || !user) return
+    if (guard()) return
     setSending(true)
 
     const content = newMessage.trim()

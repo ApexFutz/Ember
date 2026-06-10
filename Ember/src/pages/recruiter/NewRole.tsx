@@ -2,11 +2,13 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useDemo } from '../../hooks/useDemo'
 
 type LocationType = 'remote' | 'hybrid' | 'onsite'
 
 export default function NewRole() {
   const { user } = useAuth()
+  const { guard } = useDemo()
   const navigate = useNavigate()
   const [form, setForm] = useState({
     title: '',
@@ -25,6 +27,7 @@ export default function NewRole() {
 
   async function handleSave(status: 'draft' | 'active') {
     if (!user) return
+    if (guard()) return
     if (!form.title.trim()) {
       setError('Role title is required')
       return
