@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { markDemoStarted } from '../../hooks/useDemo'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -8,6 +9,28 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [demoLoading, setDemoLoading] = useState(false)
+
+  async function startDemo() {
+    setError(null)
+    setDemoLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('create-demo-session', {
+        body: { referrer: document.referrer || null },
+      })
+      if (error || !data?.access_token) throw new Error(error?.message ?? 'Could not start demo')
+      const { error: sessErr } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      })
+      if (sessErr) throw sessErr
+      markDemoStarted(data.session_id ?? null)
+      navigate('/recruiter/dashboard')
+    } catch (e) {
+      setError((e as Error).message)
+      setDemoLoading(false)
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -105,6 +128,15 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
+
+          <button
+            type="button"
+            onClick={startDemo}
+            disabled={demoLoading}
+            style={{ ...styles.demoButton, ...(demoLoading ? styles.buttonDisabled : {}) }}
+          >
+            {demoLoading ? 'Starting demo…' : 'Try a Demo — no signup'}
+          </button>
 
           <div style={styles.divider} />
 
@@ -259,6 +291,19 @@ const styles: Record<string, React.CSSProperties> = {
   buttonDisabled: {
     opacity: 0.5,
     cursor: 'not-allowed',
+  },
+  demoButton: {
+    marginTop: '12px',
+    width: '100%',
+    padding: '12px 16px',
+    backgroundColor: 'transparent',
+    color: 'var(--color-primary)',
+    border: '1px solid var(--color-primary)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all var(--transition-fast)',
   },
   divider: {
     height: '1px',

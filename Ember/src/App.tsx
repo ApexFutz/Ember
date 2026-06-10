@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { DemoProvider } from './hooks/useDemo'
 import Layout from './components/Layout'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
@@ -116,7 +117,9 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <DemoProvider>
+        <AppRoutes />
+      </DemoProvider>
     </BrowserRouter>
   )
 }

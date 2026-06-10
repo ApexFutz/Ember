@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useDemo } from '../../hooks/useDemo'
 import EmptyState from '../../components/EmptyState.tsx'
 import { RailLayout, RailCard } from '../../components/RailLayout'
 
@@ -104,6 +105,7 @@ function formatDate(dateStr: string) {
 
 export default function RecruiterDashboard() {
   const { user } = useAuth()
+  const { guard } = useDemo()
   const navigate = useNavigate()
   const [roleGroups, setRoleGroups] = useState<RoleGroup[]>([])
   const [loading, setLoading] = useState(true)
@@ -225,6 +227,7 @@ export default function RecruiterDashboard() {
   }
 
   async function updateStatus(submissionId: string, status: SubmissionStatus) {
+    if (guard()) return
     // Gate: can't move a submission off "pending review" until the replay was opened.
     const current = roleGroups.flatMap(g => g.submissions).find(s => s.id === submissionId)
     if (current && current.status === 'pending_review' && status !== 'pending_review' && !current.replay_viewed) {

@@ -12,8 +12,13 @@
  * Idempotent: every entity is matched on a natural key (email, title, FK pair)
  * and reused if it already exists, so running it repeatedly never duplicates rows.
  */
-import 'dotenv/config'
+import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
+
+// Load the root .env (for SUPABASE_SERVICE_ROLE_KEY) and the app's Ember/.env
+// (for the project URL via VITE_SUPABASE_URL). Root values take precedence.
+dotenv.config()
+dotenv.config({ path: 'Ember/.env' })
 
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -345,9 +350,26 @@ async function main() {
     console.log('  = thread already has messages')
   }
 
+  // 7. Demo mode: dedicated read-only recruiter + candidate, data built by the
+  // reset_demo_data() SQL function (single source of truth, also run nightly).
+  console.log('Demo mode:')
+  const demoPassword = process.env.DEMO_PASSWORD || 'demo-ember-readonly'
+  const demoRecruiter = await ensureUser('demo@ember.dev', 'recruiter', 'Demo Recruiter')
+  const demoCandidate = await ensureUser('demo-candidate@ember.dev', 'candidate', 'Jordan Rivera')
+  // Demo recruiter signs in with a known password via the edge function.
+  await db.auth.admin.updateUserById(demoRecruiter.id, { password: demoPassword })
+  await db.from('app_settings').upsert([
+    { key: 'demo_user_id', value: demoRecruiter.id },
+    { key: 'demo_candidate_id', value: demoCandidate.id },
+  ], { onConflict: 'key' })
+  const { error: resetErr } = await db.rpc('reset_demo_data')
+  if (resetErr) console.warn(`  ! reset_demo_data failed: ${resetErr.message}`)
+  else console.log('  = demo data built (demo@ember.dev)')
+
   console.log('\n✓ Seed complete.')
   console.log('  Recruiter: recruiter@test.ember / password123')
   console.log('  Candidates: alice@test.ember, bob@test.ember / password123')
+  console.log(`  Demo recruiter: demo@ember.dev / ${demoPassword} (set DEMO_PASSWORD env to match the edge function)`)
 }
 
 main().catch(err => {
