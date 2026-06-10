@@ -27,6 +27,7 @@ interface Submission {
   duration_s: number | null
   paste_count: number | null
   focus_loss_count: number
+  skills: string[]
 }
 
 // Recruiter-facing status filters (maps the DB statuses to demo-friendly labels).
@@ -184,12 +185,26 @@ export default function RecruiterDashboard() {
       }
     }
 
+    // Candidate skills (not on the submission view) for at-a-glance tech stack.
+    const skillsByCandidate = new Map<string, string[]>()
+    const candidateIds = [...new Set(rows.map((s: any) => s.candidate_id).filter(Boolean))]
+    if (candidateIds.length > 0) {
+      const { data: cands } = await supabase
+        .from('profiles')
+        .select('id, skills')
+        .in('id', candidateIds)
+      for (const c of cands ?? []) {
+        if (Array.isArray(c.skills)) skillsByCandidate.set(c.id, c.skills)
+      }
+    }
+
     for (const s of rows) {
       (s as any).replay_viewed = viewed.has(s.id)
       const m = metricsById.get(s.id)
       ;(s as any).duration_s = m?.duration_s ?? null
       ;(s as any).paste_count = m?.paste_count ?? null
       ;(s as any).focus_loss_count = focusByAssessment.get((s as any).assessment_id) ?? 0
+      ;(s as any).skills = skillsByCandidate.get((s as any).candidate_id) ?? []
     }
 
     // Group by role
@@ -508,6 +523,13 @@ export default function RecruiterDashboard() {
                         <p style={styles.candidateHeadline}>
                           {sub.role_title} · {sub.candidate_headline ?? 'No headline'}
                         </p>
+                        <div style={styles.skillRow}>
+                          {sub.skills.length > 0 ? (
+                            sub.skills.map(sk => <span key={sk} style={styles.skillChip}>{sk}</span>)
+                          ) : (
+                            <span style={styles.noSkills}>No skills listed</span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -800,6 +822,13 @@ const styles: Record<string, React.CSSProperties> = {
   avatarInitial: { fontSize: '15px', fontWeight: '600', color: 'var(--color-on-primary)', fontFamily: 'var(--font-display)' },
   candidateName: { fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 4px' },
   candidateHeadline: { fontSize: '12px', color: 'var(--color-text-secondary)', margin: 0 },
+  skillRow: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' },
+  skillChip: {
+    fontSize: '11px', fontWeight: '500', color: 'var(--color-text-secondary)',
+    background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-light)',
+    borderRadius: '999px', padding: '2px 9px',
+  },
+  noSkills: { fontSize: '11px', color: 'var(--color-text-tertiary)', fontStyle: 'italic' },
   subRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' },
   availBadge: { fontSize: '12px', fontWeight: '600' },
   subDate: { fontSize: '12px', color: 'var(--color-text-secondary)' },

@@ -77,9 +77,13 @@ export default function CandidateProfile() {
     setPhotoPreview(URL.createObjectURL(file))
   }
 
+  const MAX_SKILLS = 15
+  const MAX_SKILL_LEN = 30
+
   function addSkill() {
-    const trimmed = skillInput.trim()
+    const trimmed = skillInput.trim().slice(0, MAX_SKILL_LEN)
     if (!trimmed || form.skills.includes(trimmed)) return
+    if (form.skills.length >= MAX_SKILLS) return
     setForm(prev => ({ ...prev, skills: [...prev.skills, trimmed] }))
     setSkillInput('')
   }
@@ -89,7 +93,8 @@ export default function CandidateProfile() {
   }
 
   function handleSkillKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
+    // Enter or comma commits the current tag.
+    if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault()
       addSkill()
     }
@@ -286,17 +291,25 @@ export default function CandidateProfile() {
 
           {/* Skills */}
           <div style={styles.card}>
-            <p style={styles.cardLabel}>Skills</p>
+            <p style={styles.cardLabel}>Skills <span style={styles.skillCount}>{form.skills.length}/{MAX_SKILLS}</span></p>
             <div style={styles.skillInputRow}>
               <input
                 type="text"
                 value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
+                onChange={e => setSkillInput(e.target.value.slice(0, MAX_SKILL_LEN))}
                 onKeyDown={handleSkillKeyDown}
-                placeholder="e.g. React, Python, SQL"
+                placeholder="Type a skill, press Enter"
+                maxLength={MAX_SKILL_LEN}
+                disabled={form.skills.length >= MAX_SKILLS}
                 style={styles.input}
               />
-              <button onClick={addSkill} style={styles.addBtn}>Add</button>
+              <button
+                onClick={addSkill}
+                disabled={form.skills.length >= MAX_SKILLS}
+                style={form.skills.length >= MAX_SKILLS ? { ...styles.addBtn, opacity: 0.5, cursor: 'not-allowed' } : styles.addBtn}
+              >
+                Add
+              </button>
             </div>
             <div style={styles.skillTags}>
               {form.skills.map(skill => (
@@ -591,6 +604,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     color: 'var(--color-text-secondary)',
     margin: 0,
+  },
+  skillCount: {
+    fontSize: '11px',
+    fontWeight: '500',
+    color: 'var(--color-text-tertiary)',
+    letterSpacing: 0,
+    textTransform: 'none',
+    marginLeft: '6px',
   },
   field: {
     display: 'flex',
