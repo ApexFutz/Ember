@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { supabase } from '../../lib/supabase'
-import { extractPasteEvents, formatElapsed } from '../../lib/pasteDetection'
+import { extractPasteEvents, extractFocusEvents, formatElapsed } from '../../lib/pasteDetection'
 
 interface LogEntry {
   timestamp: number
   file: string
-  type: 'insert' | 'delete' | 'paste'
+  type: 'insert' | 'delete' | 'paste' | 'focus_loss'
   content: string
   position: number
 }
@@ -121,6 +121,7 @@ export default function Replay() {
 
     for (let i = 0; i < step && i < logs.length; i++) {
       const entry = logs[i]
+      if (entry.type === 'focus_loss') continue // not an edit
       if (!fileContents[entry.file]) fileContents[entry.file] = ''
 
       const content = fileContents[entry.file]
@@ -221,6 +222,7 @@ export default function Replay() {
 
   // Large-paste events (potential external-code flags), with snippets + timing.
   const pasteEvents = extractPasteEvents(logs)
+  const focusEvents = extractFocusEvents(logs)
   const startTs = logs[0]?.timestamp ?? 0
 
   function getLanguage(filename: string) {
@@ -302,13 +304,25 @@ export default function Replay() {
               {/* Large-paste tick marks */}
               {pasteEvents.map(ev => (
                 <div
-                  key={ev.step}
+                  key={`p${ev.step}`}
                   onClick={() => handleScrub(ev.step)}
                   style={{
                     ...styles.pasteMarker,
                     left: `${(ev.step / logs.length) * 100}%`,
                   }}
                   title={`Large paste — ${ev.charCount} characters at ${formatElapsed(ev.timestamp, startTs)}`}
+                />
+              ))}
+              {/* Focus-loss tick marks */}
+              {focusEvents.map(ev => (
+                <div
+                  key={`f${ev.step}`}
+                  onClick={() => handleScrub(ev.step)}
+                  style={{
+                    ...styles.focusMarker,
+                    left: `${(ev.step / logs.length) * 100}%`,
+                  }}
+                  title={`Left the tab at ${formatElapsed(ev.timestamp, startTs)}`}
                 />
               ))}
             </div>
@@ -361,6 +375,34 @@ export default function Replay() {
                     <code style={styles.pasteSnippet}>
                       {ev.snippet.replace(/\n/g, '↵')}{ev.charCount > ev.snippet.length ? '…' : ''}
                     </code>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Focus Events panel */}
+          {focusEvents.length > 0 && (
+            <div style={styles.pastePanel}>
+              <div style={styles.pastePanelHead}>
+                <span style={styles.pastePanelTitle}>Focus Events</span>
+                <span style={styles.focusCountBadge}>
+                  {focusEvents.length} focus loss{focusEvents.length !== 1 ? 'es' : ''} detected
+                </span>
+              </div>
+              <p style={styles.pastePanelHint}>
+                Tab switches / window blur (amber on the timeline). Context, not a verdict —
+                legitimate reasons exist. Click an entry to jump to that moment.
+              </p>
+              <div style={styles.pasteList}>
+                {focusEvents.map(ev => (
+                  <button
+                    key={ev.step}
+                    onClick={() => handleScrub(ev.step)}
+                    style={styles.focusItem}
+                  >
+                    <span style={styles.pasteItemTime}>⏱ {formatElapsed(ev.timestamp, startTs)}</span>
+                    <span style={styles.focusItemLabel}>Left the tab</span>
                   </button>
                 ))}
               </div>
@@ -471,6 +513,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: '3px', height: '16px', backgroundColor: 'var(--color-error)',
     borderRadius: '1px', cursor: 'pointer', zIndex: 2,
   },
+  focusMarker: {
+    position: 'absolute', top: '50%', transform: 'translateX(-50%) translateY(-50%)',
+    width: '3px', height: '16px', backgroundColor: 'var(--color-warning, #f59e0b)',
+    borderRadius: '1px', cursor: 'pointer', zIndex: 2,
+  },
   speedControls: { display: 'flex', gap: '4px' },
   speedBtn: {
     padding: '7px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
@@ -516,6 +563,17 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'block', fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
+  focusCountBadge: {
+    fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-warning-text, #92400e)',
+    background: 'var(--color-warning-soft, #fef3c7)', border: '1px solid var(--color-warning, #f59e0b)',
+    borderRadius: '999px', padding: '3px 10px',
+  },
+  focusItem: {
+    display: 'flex', alignItems: 'center', gap: '12px', width: '100%', textAlign: 'left', cursor: 'pointer',
+    background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-light)',
+    borderLeft: '3px solid var(--color-warning, #f59e0b)', borderRadius: 'var(--radius-md)', padding: '10px 12px',
+  },
+  focusItemLabel: { fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' },
   summaryCard: {
     display: 'flex', gap: '12px', flexWrap: 'wrap',
     background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',

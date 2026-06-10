@@ -37,7 +37,7 @@ interface FileTab {
 interface LogEntry {
   timestamp: number
   file: string
-  type: 'insert' | 'delete' | 'paste'
+  type: 'insert' | 'delete' | 'paste' | 'focus_loss'
   content: string
   position: number
   threshold?: number
@@ -80,6 +80,11 @@ export default function Assessment() {
   const editorRef = useRef<any>(null)
   const warned5 = useRef(false)
   const warned1 = useRef(false)
+  const activeFileRef = useRef(activeFile)
+  const focusWarned = useRef(false)
+  const lastFocusLog = useRef(0)
+
+  useEffect(() => { activeFileRef.current = activeFile }, [activeFile])
 
   // Server-defined limit (seconds). Falls back to the minutes column.
   const limitSeconds = ruleset ? (ruleset.time_limit_seconds ?? ruleset.time_limit_mins * 60) : 0
@@ -99,6 +104,7 @@ export default function Assessment() {
       order.push(f.name)
     }
     for (const e of log) {
+      if (e.type !== 'insert' && e.type !== 'paste' && e.type !== 'delete') continue
       if (!(e.file in contents)) {
         contents[e.file] = ''
         order.push(e.file)
@@ -266,6 +272,39 @@ useEffect(() => {
 
     return () => clearInterval(interval)
   }, [started, locked, assessmentId])
+
+  // Focus-loss detection: tab switches and window blur are logged as integrity
+  // signals (not auto-failures). A single tab switch fires both blur and
+  // visibilitychange, so de-dupe within a short window.
+  useEffect(() => {
+    if (!started || locked) return
+
+    const record = (reason: string) => {
+      const now = Date.now()
+      if (now - lastFocusLog.current < 600) return // collapse blur+visibility pair
+      lastFocusLog.current = now
+      logs.current.push({
+        timestamp: now,
+        file: activeFileRef.current,
+        type: 'focus_loss',
+        content: reason,
+        position: 0,
+      })
+      if (!focusWarned.current) {
+        focusWarned.current = true
+        flashWarning('Leaving this tab is recorded and visible to the recruiter.')
+      }
+    }
+
+    const onVisibility = () => { if (document.hidden) record('tab_hidden') }
+    const onBlur = () => record('window_blur')
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [started, locked])
 
   function formatTime(seconds: number) {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0')
