@@ -86,6 +86,7 @@ export default function Replay() {
   const [skills, setSkills] = useState<string[]>([])
 
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -99,7 +100,14 @@ export default function Replay() {
 
       if (subData) {
         setSubmission(subData)
-        setNotes(subData.recruiter_notes ?? '')
+
+        // Private notes live in their own recruiter-only table.
+        const { data: noteRow } = await supabase
+          .from('submission_notes')
+          .select('body')
+          .eq('submission_id', id)
+          .maybeSingle()
+        setNotes(noteRow?.body ?? '')
 
         // Candidate skills for at-a-glance tech stack.
         if (subData.candidate_id) {
@@ -263,17 +271,23 @@ export default function Replay() {
     }
   }
 
-  async function saveNotes() {
+  async function saveNotes(value: string) {
     if (!id) return
     if (guard()) return
     setSavingNotes(true)
     await supabase
-      .from('submissions')
-      .update({ recruiter_notes: notes })
-      .eq('id', id)
+      .from('submission_notes')
+      .upsert({ submission_id: id, body: value, updated_at: new Date().toISOString() },
+        { onConflict: 'submission_id' })
     setSavingNotes(false)
     setNotesSaved(true)
     setTimeout(() => setNotesSaved(false), 2000)
+  }
+
+  // Autosave on blur, debounced so a quick blur/refocus doesn't double-write.
+  function scheduleSave(value: string) {
+    if (notesTimer.current) clearTimeout(notesTimer.current)
+    notesTimer.current = setTimeout(() => saveNotes(value), 500)
   }
 
   // Large-paste events (potential external-code flags), with snippets + timing.
@@ -526,26 +540,22 @@ export default function Replay() {
             </div>
           )}
 
-          {/* Notes */}
+          {/* Notes — autosave on blur, never shown to the candidate */}
           <div style={styles.notesCard}>
-            <p style={styles.notesLabel}>Private notes</p>
+            <div style={styles.notesHeader}>
+              <p style={styles.notesLabel}>Private notes</p>
+              <span style={{ ...styles.notesSaved, opacity: (notesSaved || savingNotes) ? 1 : 0 }}>
+                {savingNotes ? 'Saving…' : 'Saved'}
+              </span>
+            </div>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Add private notes about this candidate's performance..."
+              onBlur={e => scheduleSave(e.target.value)}
+              placeholder="Private notes — only you can see these"
               style={styles.notesArea}
               rows={4}
             />
-            <div style={styles.notesFooter}>
-              {notesSaved && <span style={styles.notesSaved}>Saved</span>}
-              <button
-                onClick={saveNotes}
-                disabled={savingNotes}
-                style={savingNotes ? { ...styles.notesBtn, opacity: 0.6 } : styles.notesBtn}
-              >
-                {savingNotes ? 'Saving...' : 'Save notes'}
-              </button>
-            </div>
           </div>
         </>
       )}
@@ -706,9 +716,12 @@ const styles: Record<string, React.CSSProperties> = {
   notesCard: {
     background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '20px', boxShadow: 'var(--shadow-md)',
   },
+  notesHeader: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px',
+  },
   notesLabel: {
     fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', letterSpacing: '0.08em',
-    textTransform: 'uppercase', color: 'var(--color-text-tertiary)', margin: '0 0 12px',
+    textTransform: 'uppercase', color: 'var(--color-text-tertiary)', margin: 0,
   },
   notesArea: {
     width: '100%', padding: '10px 14px', border: '1px solid var(--color-border)',
@@ -721,7 +734,10 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
     gap: '12px', marginTop: '12px',
   },
-  notesSaved: { fontSize: 'var(--text-sm)', color: 'var(--color-success)' },
+  notesSaved: {
+    fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-success)',
+    transition: 'opacity 0.6s ease',
+  },
   notesBtn: {
     padding: '9px 18px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)',
     border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)',
