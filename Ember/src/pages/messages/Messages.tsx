@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useDemo } from '../../hooks/useDemo'
+import { toast, extractMessage } from '../../lib/toast'
 
 interface Thread {
   id: string
@@ -172,7 +173,7 @@ export default function Messages() {
     const content = newMessage.trim()
     setNewMessage('')
 
-    await supabase
+    const { error } = await supabase
       .from('messages')
       .insert({
         thread_id: activeThread,
@@ -180,6 +181,12 @@ export default function Messages() {
         content,
         read: false,
       })
+
+    if (error) {
+      console.error('Failed to send message:', error.message)
+      toast.error('Message failed to send', extractMessage(error))
+      setNewMessage(content) // restore the draft so it isn't lost
+    }
 
     setSending(false)
   }

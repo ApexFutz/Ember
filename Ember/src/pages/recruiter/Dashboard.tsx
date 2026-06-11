@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useDemo } from '../../hooks/useDemo'
 import EmptyState from '../../components/EmptyState.tsx'
 import { RailLayout, RailCard } from '../../components/RailLayout'
+import { toast, extractMessage } from '../../lib/toast'
 
 type SubmissionStatus = 'pending_review' | 'reviewed' | 'moved_forward' | 'passed'
 
@@ -168,6 +169,7 @@ export default function RecruiterDashboard() {
 
     if (error) {
       console.error('Error loading submissions:', error.message)
+      toast.error('Could not load submissions', extractMessage(error))
       setLoading(false)
       return
     }
@@ -274,10 +276,17 @@ export default function RecruiterDashboard() {
     }
     setUpdatingId(submissionId)
 
-    await supabase
+    const { error } = await supabase
       .from('submissions')
       .update({ status })
       .eq('id', submissionId)
+
+    if (error) {
+      console.error('Failed to update status:', error.message)
+      toast.error('Could not update candidate status', extractMessage(error))
+      setUpdatingId(null)
+      return
+    }
 
     setRoleGroups(prev => prev.map(group => ({
       ...group,
@@ -287,6 +296,7 @@ export default function RecruiterDashboard() {
     })))
 
     setUpdatingId(null)
+    toast.success('Candidate status updated')
   }
   async function startThread(candidateId: string, roleId: string) {
     if (!user) return

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { toast, extractMessage } from '../../lib/toast'
 
 interface Analytics {
   started: number
@@ -51,6 +52,7 @@ export default function RoleAnalytics() {
       const { data: result, error: rpcErr } = await supabase.rpc('role_analytics', { p_role_id: roleId })
       if (rpcErr) {
         setError(rpcErr.message)
+        toast.error('Could not load analytics', extractMessage(rpcErr))
       } else {
         setData(result as Analytics)
         setUpdatedAt(new Date())

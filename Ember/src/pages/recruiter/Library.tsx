@@ -9,6 +9,7 @@ import {
   type Difficulty,
   type LibraryAssessment,
 } from '../../lib/assessmentLibrary'
+import { toast, extractMessage } from '../../lib/toast'
 
 const difficultyColors: Record<Difficulty, { color: string; bg: string }> = {
   Beginner: { color: 'var(--color-success-text)', bg: 'var(--color-success-soft)' },
@@ -48,6 +49,7 @@ export default function Library() {
       setItems(data)
     } catch (e) {
       setError((e as Error).message)
+      toast.error('Could not load assessment library', extractMessage(e))
     }
     setLoading(false)
   }
@@ -75,8 +77,10 @@ export default function Library() {
       setForm(emptyForm)
       setShowForm(false)
       await load()
+      toast.success('Assessment added to library')
     } catch (e) {
       setError((e as Error).message)
+      toast.error('Could not create assessment', extractMessage(e))
     }
     setSaving(false)
   }

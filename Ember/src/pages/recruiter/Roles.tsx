@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { RailLayout, RailCard } from '../../components/RailLayout'
+import { toast, extractMessage } from '../../lib/toast'
 
 type RoleStatus = 'draft' | 'active' | 'archived'
 type LocationType = 'remote' | 'hybrid' | 'onsite'
@@ -79,6 +80,9 @@ export default function RecruiterRoles() {
       .eq('id', role.id)
     if (!error) {
       setRoles(prev => prev.map(r => r.id === role.id ? { ...r, status: newStatus } : r))
+    } else {
+      console.error('Failed to update role status:', error.message)
+      toast.error('Could not update role', extractMessage(error))
     }
     return !error
   }
@@ -95,8 +99,13 @@ export default function RecruiterRoles() {
     if (!pending) return
     setWorking(true)
     const target: RoleStatus = pending.kind === 'archive' ? 'archived' : 'active'
-    await setStatus(pending.role, target)
+    const kind = pending.kind
+    const ok = await setStatus(pending.role, target)
     setWorking(false)
+    if (ok) {
+      if (kind === 'publish' || kind === 'reactivate') toast.success('Role is now live')
+      else if (kind === 'archive') toast.success('Role archived')
+    }
     // Jump to the tab the role just moved to, so it stays visible.
     setTab(target)
     setPending(null)

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { toast, extractMessage } from '../../lib/toast'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -20,6 +21,7 @@ export default function ForgotPassword() {
     // Don't reveal whether the email exists — show success either way.
     if (error && error.status && error.status >= 500) {
       setError(error.message)
+      toast.error('Could not send reset email', extractMessage(error))
       setLoading(false)
       return
     }

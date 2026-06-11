@@ -13,6 +13,7 @@ import {
   type LibraryAssessment,
   type RoleAssessment,
 } from '../../lib/assessmentLibrary'
+import { toast, extractMessage } from '../../lib/toast'
 
 type BundledAssessment = RoleAssessment & { library_assessments: LibraryAssessment | null }
 
@@ -218,9 +219,11 @@ export default function Ruleset() {
 
     if (saveError) {
       setError(saveError.message)
+      toast.error('Could not save ruleset', extractMessage(saveError))
     } else {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+      toast.success('Ruleset saved')
     }
 
     setSaving(false)

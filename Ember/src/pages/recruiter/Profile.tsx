@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import NotificationToggle from '../../components/NotificationToggle'
+import { toast, extractMessage } from '../../lib/toast'
 
 interface ProfileForm {
   full_name: string
@@ -121,8 +122,10 @@ export default function RecruiterProfile() {
 
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+      toast.success('Profile saved')
     } catch (err: any) {
       setError(err.message)
+      toast.error('Could not save profile', extractMessage(err))
     } finally {
       setSaving(false)
     }

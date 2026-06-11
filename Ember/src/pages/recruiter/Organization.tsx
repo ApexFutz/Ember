@@ -6,6 +6,7 @@ import {
   removeMember, setMemberRole, renameOrg,
   type Membership, type OrgMember, type OrgInvitation, type MemberRole,
 } from '../../lib/organizations'
+import { toast, extractMessage } from '../../lib/toast'
 
 export default function Organization() {
   const { user } = useAuth()
@@ -38,6 +39,7 @@ export default function Organization() {
       }
     } catch (e) {
       setError((e as Error).message)
+      toast.error('Could not load organization', extractMessage(e))
     }
     setLoading(false)
   }
@@ -47,7 +49,7 @@ export default function Organization() {
   async function run(fn: () => Promise<void>) {
     setBusy(true); setError(null)
     try { await fn(); await load() }
-    catch (e) { setError((e as Error).message) }
+    catch (e) { setError((e as Error).message); toast.error('Action failed', extractMessage(e)) }
     setBusy(false)
   }
 

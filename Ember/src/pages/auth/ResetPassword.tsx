@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { toast, extractMessage } from '../../lib/toast'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -40,10 +41,12 @@ export default function ResetPassword() {
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
       setError(error.message)
+      toast.error('Could not reset password', extractMessage(error))
       setLoading(false)
       return
     }
     setDone(true)
+    toast.success('Password updated')
     setLoading(false)
     setTimeout(() => navigate('/login'), 2000)
   }

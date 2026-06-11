@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { markDemoStarted } from '../../hooks/useDemo'
+import { toast, extractMessage } from '../../lib/toast'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -28,6 +29,7 @@ export default function Login() {
       navigate('/recruiter/dashboard')
     } catch (e) {
       setError((e as Error).message)
+      toast.error('Could not start demo', extractMessage(e))
       setDemoLoading(false)
     }
   }
@@ -44,6 +46,7 @@ export default function Login() {
 
     if (error) {
       setError(error.message)
+      toast.error('Sign in failed', extractMessage(error))
       setLoading(false)
       return
     }

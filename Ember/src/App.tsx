@@ -1,7 +1,9 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { useAuth } from './hooks/useAuth'
 import { DemoProvider } from './hooks/useDemo'
+import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
@@ -119,11 +121,28 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <DemoProvider>
-        <AppRoutes />
-      </DemoProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <DemoProvider>
+          <AppRoutes />
+        </DemoProvider>
+      </BrowserRouter>
+      {/* Rendered exactly once at the root. Styled to match the dark theme. */}
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        richColors
+        closeButton
+        toastOptions={{
+          style: {
+            background: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-primary)',
+            fontFamily: 'var(--font-primary)',
+          },
+        }}
+      />
+    </ErrorBoundary>
   )
 }
 

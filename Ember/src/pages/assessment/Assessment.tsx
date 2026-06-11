@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { getTemplateFiles, getTemplateLabel } from '../../lib/starterTemplates'
 import type { TestResult } from '../../lib/testHarness'
 import { LARGE_PASTE_THRESHOLD } from '../../lib/pasteDetection'
+import { toast, extractMessage } from '../../lib/toast'
 
 interface Ruleset {
   task_description: string
@@ -337,6 +338,7 @@ useEffect(() => {
 
     if (error) {
       console.error('Failed to start assessment:', error.message)
+      toast.error('Could not start the assessment', extractMessage(error))
       return
     }
 
@@ -438,7 +440,7 @@ useEffect(() => {
     setSubmitting(true)
 
     // Save final files and logs
-    await supabase
+    const { error: updateError } = await supabase
       .from('assessments')
       .update({
         status,
@@ -450,7 +452,7 @@ useEffect(() => {
     await saveLogs(true)
 
     // Create submission record
-    await supabase
+    const { error: submitError } = await supabase
       .from('submissions')
       .insert({
         role_id: roleId,
@@ -458,6 +460,13 @@ useEffect(() => {
         assessment_id: assessmentId,
         status: 'pending_review',
       })
+
+    if (updateError || submitError) {
+      console.error('Failed to submit assessment:', updateError ?? submitError)
+      toast.error('Submission failed', extractMessage(updateError ?? submitError))
+      setSubmitting(false)
+      return
+    }
 
     // Score against the full (incl. hidden) test suite server-side. Failures
     // here must not block the submission from completing.
@@ -471,6 +480,7 @@ useEffect(() => {
 
     setSubmitting(false)
     setSubmitted(true)
+    toast.success('Assessment submitted successfully')
   }
 
   function addFile() {

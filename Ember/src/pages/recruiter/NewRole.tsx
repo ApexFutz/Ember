@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useDemo } from '../../hooks/useDemo'
+import { toast, extractMessage } from '../../lib/toast'
 
 type LocationType = 'remote' | 'hybrid' | 'onsite'
 
@@ -53,6 +54,7 @@ export default function NewRole() {
 
     if (saveError) {
       setError(saveError.message)
+      toast.error('Could not create role', extractMessage(saveError))
       setSaving(false)
       return
     }

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { checkInviteCode, redeemInviteCode } from '../../lib/founding'
+import { toast, extractMessage } from '../../lib/toast'
 
 export default function Signup() {
   const navigate = useNavigate()
@@ -46,6 +47,7 @@ export default function Signup() {
 
     if (error) {
       setError(error.message)
+      toast.error('Sign up failed', extractMessage(error))
       setLoading(false)
       return
     }
