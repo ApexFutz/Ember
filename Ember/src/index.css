@@ -103,6 +103,18 @@ html, body, #root {
   .context-rail { display: none !important; }
 }
 
+/* Mobile: comfortable tap targets + 16px to stop iOS focus-zoom */
+@media (max-width: 768px) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  /* Never let any page scroll sideways on a phone */
+  html, body { overflow-x: hidden; }
+}
+
 /* Billing page animated background blobs */
 @keyframes ember-blob {
   0%, 100% { transform: translate(0, 0) scale(1); }

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import NotificationToggle from '../../components/NotificationToggle'
 import { toast, extractMessage } from '../../lib/toast'
+import { getCompletionPercent } from '../../lib/profileCompletion'
 
 type Availability = 'available' | 'open' | 'not_looking'
 
@@ -171,6 +172,17 @@ export default function CandidateProfile() {
     o => o.value === form.availability
   )
 
+  // Live completion based on the five tracked fields (avatar reflects an existing
+  // photo or a freshly chosen one via photoPreview).
+  const completion = getCompletionPercent({
+    photo_url: photoPreview,
+    bio: form.bio,
+    github_url: form.github_url,
+    skills: form.skills,
+    availability: form.availability,
+  })
+  const complete = completion === 100
+
   return (
     <div style={styles.page}>
       <div style={styles.header}>
@@ -179,6 +191,22 @@ export default function CandidateProfile() {
           This is what recruiters see. Keep it sharp.
         </p>
       </div>
+
+      {complete ? (
+        <div style={styles.completeBadge}>
+          <span style={styles.completeCheck}>✓</span> Profile complete
+        </div>
+      ) : (
+        <div style={styles.progressCard}>
+          <div style={styles.progressHead}>
+            <span style={styles.progressLabel}>Profile {completion}% complete</span>
+            <span style={styles.progressHint}>Finish your profile so recruiters see your best.</span>
+          </div>
+          <div style={styles.progressTrack}>
+            <div style={{ ...styles.progressBar, width: `${completion}%` }} />
+          </div>
+        </div>
+      )}
 
       {error && <div style={styles.error}>{error}</div>}
       {saved && <div style={styles.success}>Profile saved successfully.</div>}
@@ -452,6 +480,63 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     color: 'var(--color-text-secondary)',
     margin: 0,
+  },
+  progressCard: {
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)',
+    padding: '18px 20px',
+    boxShadow: 'var(--shadow-md)',
+    marginBottom: '24px',
+  },
+  progressHead: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: '12px',
+    flexWrap: 'wrap',
+    marginBottom: '12px',
+  },
+  progressLabel: { fontSize: '15px', fontWeight: '600', color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' },
+  progressHint: { fontSize: '12px', color: 'var(--color-text-secondary)' },
+  progressTrack: {
+    height: '8px',
+    borderRadius: '999px',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: '999px',
+    background: 'linear-gradient(90deg, var(--color-primary), var(--color-primary-light))',
+    transition: 'width var(--transition-base)',
+    minWidth: '2px',
+  },
+  completeBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    background: 'var(--color-success-soft)',
+    border: '1px solid var(--color-success-soft)',
+    borderRadius: 'var(--radius-xl)',
+    padding: '16px 20px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: 'var(--color-success-text)',
+    marginBottom: '24px',
+  },
+  completeCheck: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    background: 'var(--color-success)',
+    color: 'var(--color-on-primary)',
+    fontSize: '13px',
+    fontWeight: '700',
+    flexShrink: 0,
   },
   error: {
     background: 'var(--color-error-soft)',

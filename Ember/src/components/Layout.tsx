@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useDemo } from '../hooks/useDemo'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { supabase } from '../lib/supabase'
 import WelcomeModal from './WelcomeModal'
 import { markWelcomeSeen } from '../lib/founding'
@@ -9,8 +10,10 @@ import { markWelcomeSeen } from '../lib/founding'
 export default function Layout() {
   const { profile, isRecruiter, refreshProfile } = useAuth()
   const { isDemo, goSignup } = useDemo()
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const showWelcome = !!profile?.founding_recruiter && !profile?.has_seen_welcome
 
   useEffect(() => {
@@ -86,6 +89,117 @@ export default function Layout() {
   const navItems = isRecruiter ? recruiterNav : candidateNav
 
   const DEMO_BAR = 44
+  const MOBILE_BAR = 56
+  const demoOffset = isDemo ? DEMO_BAR : 0
+
+  // Shared sidebar body (logo, role, nav, account) used by the desktop sidebar
+  // and the mobile slide-in drawer.
+  const sidebarBody = (
+    <>
+      {/* Logo */}
+      <div style={styles.logo}>
+        <span style={styles.logoText}>Ember</span>
+        <span style={styles.logoDot}>.</span>
+      </div>
+
+      {/* Role badge */}
+      <div style={styles.roleBadge}>
+        {isRecruiter ? 'Recruiter' : 'Candidate'}
+      </div>
+
+      {/* Nav items */}
+      <nav style={styles.nav}>
+        {navItems.map(item => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            onClick={() => setDrawerOpen(false)}
+            style={({ isActive }) => ({
+              ...styles.navItem,
+              ...(isActive ? styles.navItemActive : {}),
+            })}
+            onMouseEnter={(e) => {
+              if (!(e.currentTarget as HTMLElement).style.boxShadow?.includes('primary')) {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-bg-hover)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLElement
+              if (!el.style.boxShadow?.includes('primary')) {
+                el.style.backgroundColor = 'transparent'
+              }
+            }}
+          >
+            <span>{item.label}</span>
+            {item.label === 'Messages' && unreadCount > 0 && (
+              <span style={styles.badge}>{unreadCount}</span>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Bottom section */}
+      <div style={styles.sidebarBottom}>
+        <div style={styles.userRow}>
+          <div style={styles.avatar}>
+            {profile?.full_name?.charAt(0).toUpperCase() ?? '?'}
+          </div>
+          <div style={styles.userName}>
+            {profile?.full_name ?? 'Your account'}
+          </div>
+        </div>
+        <button onClick={handleLogout} style={styles.logoutBtn}>
+          Log out
+        </button>
+      </div>
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <div style={styles.shellMobile}>
+        {isDemo && (
+          <div style={styles.demoBanner}>
+            <span style={styles.demoBannerText}>You're in demo mode.</span>
+            <button onClick={goSignup} style={styles.demoBannerCta}>Sign up free →</button>
+          </div>
+        )}
+        {showWelcome && (
+          <WelcomeModal onDismiss={async () => { await markWelcomeSeen(); await refreshProfile() }} />
+        )}
+
+        {/* Top app bar */}
+        <header style={{ ...styles.topBar, top: demoOffset }}>
+          <div style={styles.logoInline}>
+            <span style={styles.logoText}>Ember</span>
+            <span style={styles.logoDot}>.</span>
+          </div>
+          <button
+            onClick={() => setDrawerOpen(o => !o)}
+            style={styles.hamburger}
+            aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={drawerOpen}
+          >
+            {drawerOpen ? '✕' : '☰'}
+          </button>
+        </header>
+
+        {/* Drawer + scrim */}
+        {drawerOpen && (
+          <>
+            <div style={styles.scrim} onClick={() => setDrawerOpen(false)} />
+            <aside style={{ ...styles.drawer, top: demoOffset, height: `calc(100vh - ${demoOffset}px)` }}>
+              {sidebarBody}
+            </aside>
+          </>
+        )}
+
+        <main style={{ ...styles.mainMobile, paddingTop: demoOffset + MOBILE_BAR + 20 }}>
+          <Outlet />
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div style={styles.shell}>
@@ -102,64 +216,7 @@ export default function Layout() {
       )}
       {/* Sidebar */}
       <aside style={{ ...styles.sidebar, ...(isDemo ? { top: DEMO_BAR, height: `calc(100vh - ${DEMO_BAR}px)` } : {}) }}>
-        {/* Logo */}
-        <div style={styles.logo}>
-          <span style={styles.logoText}>Ember</span>
-          <span style={styles.logoDot}>.</span>
-        </div>
-
-        {/* Role badge */}
-        <div style={styles.roleBadge}>
-          {isRecruiter ? 'Recruiter' : 'Candidate'}
-        </div>
-
-        {/* Nav items */}
-        <nav style={styles.nav}>
-          {navItems.map(item => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              style={({ isActive }) => ({
-                ...styles.navItem,
-                ...(isActive ? styles.navItemActive : {}),
-              })}
-              onMouseEnter={(e) => {
-                if (!(e.currentTarget as HTMLElement).style.boxShadow?.includes('primary')) {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-bg-hover)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement
-                if (!el.style.boxShadow?.includes('primary')) {
-                  el.style.backgroundColor = 'transparent'
-                }
-              }}
-            >
-              <span>{item.label}</span>
-              {item.label === 'Messages' && unreadCount > 0 && (
-                <span style={styles.badge}>{unreadCount}</span>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Bottom section */}
-        <div style={styles.sidebarBottom}>
-          {/* User info */}
-          <div style={styles.userRow}>
-            <div style={styles.avatar}>
-              {profile?.full_name?.charAt(0).toUpperCase() ?? '?'}
-            </div>
-            <div style={styles.userName}>
-              {profile?.full_name ?? 'Your account'}
-            </div>
-          </div>
-
-          {/* Logout */}
-          <button onClick={handleLogout} style={styles.logoutBtn}>
-            Log out
-          </button>
-        </div>
+        {sidebarBody}
       </aside>
 
       {/* Main content */}
@@ -175,6 +232,64 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     minHeight: '100vh',
     backgroundColor: 'var(--color-bg-primary)',
+  },
+  shellMobile: {
+    minHeight: '100vh',
+    backgroundColor: 'var(--color-bg-primary)',
+  },
+  topBar: {
+    position: 'fixed',
+    left: 0,
+    right: 0,
+    height: '56px',
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0 16px',
+    backgroundColor: 'var(--color-bg-secondary)',
+    borderBottom: '1px solid var(--color-border-light)',
+  },
+  logoInline: { display: 'flex', alignItems: 'baseline' },
+  hamburger: {
+    width: '44px',
+    height: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'transparent',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--color-text-primary)',
+    fontSize: '18px',
+    cursor: 'pointer',
+  },
+  scrim: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1500,
+  },
+  drawer: {
+    position: 'fixed',
+    left: 0,
+    width: '264px',
+    maxWidth: '85vw',
+    zIndex: 1600,
+    backgroundColor: 'var(--color-bg-secondary)',
+    borderRight: '1px solid var(--color-border-light)',
+    display: 'flex',
+    flexDirection: 'column',
+    paddingTop: '24px',
+    paddingBottom: '24px',
+    overflowY: 'auto',
+    boxSizing: 'border-box',
+    boxShadow: 'var(--shadow-xl)',
+  },
+  mainMobile: {
+    padding: '20px 16px 40px',
+    minHeight: '100vh',
+    boxSizing: 'border-box',
   },
   demoBanner: {
     position: 'fixed', top: 0, left: 0, right: 0, height: '44px', zIndex: 2000,
@@ -240,6 +355,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '11px 14px',
+    minHeight: '44px',
+    boxSizing: 'border-box',
     borderRadius: 'var(--radius-md)',
     fontSize: '14px',
     fontWeight: '500',

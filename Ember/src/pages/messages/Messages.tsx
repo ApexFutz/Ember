@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useDemo } from '../../hooks/useDemo'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { toast, extractMessage } from '../../lib/toast'
 
 interface Thread {
@@ -39,6 +40,7 @@ function formatTime(dateStr: string) {
 export default function Messages() {
   const { user, profile, isRecruiter } = useAuth()
   const { guard } = useDemo()
+  const isMobile = useIsMobile()
   const [threads, setThreads] = useState<Thread[]>([])
   const [activeThread, setActiveThread] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -206,9 +208,13 @@ export default function Messages() {
     <div style={styles.page}>
       <h1 style={styles.title}>Messages</h1>
 
-      <div style={styles.container}>
-        {/* Thread list */}
-        <div style={styles.threadList}>
+      <div style={{ ...styles.container, ...(isMobile ? styles.containerMobile : {}) }}>
+        {/* Thread list — on mobile, hidden once a conversation is open */}
+        <div style={{
+          ...styles.threadList,
+          ...(isMobile ? styles.threadListMobile : {}),
+          ...(isMobile && activeThread ? { display: 'none' } : {}),
+        }}>
           {threads.length === 0 ? (
             <div style={styles.noThreads}>No messages yet</div>
           ) : (
@@ -246,8 +252,11 @@ export default function Messages() {
           )}
         </div>
 
-        {/* Message panel */}
-        <div style={styles.messagePanel}>
+        {/* Message panel — on mobile, only shown once a conversation is open */}
+        <div style={{
+          ...styles.messagePanel,
+          ...(isMobile && !activeThread ? { display: 'none' } : {}),
+        }}>
           {!activeThread ? (
             <div style={styles.noActive}>
               Select a conversation to view messages
@@ -256,6 +265,15 @@ export default function Messages() {
             <>
               {/* Thread header */}
               <div style={styles.messageHeader}>
+                {isMobile && (
+                  <button
+                    onClick={() => setActiveThread(null)}
+                    style={styles.backBtn}
+                    aria-label="Back to conversations"
+                  >
+                    ←
+                  </button>
+                )}
                 <div style={styles.threadAvatar}>
                   {active?.other_photo
                     ? <img src={active.other_photo} alt="" style={styles.threadAvatarImg} />
@@ -338,12 +356,33 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--color-bg-secondary)',
     boxShadow: 'var(--shadow-md)',
   },
+  containerMobile: {
+    height: 'calc(100vh - 170px)',
+  },
   threadList: {
     width: '300px',
     borderRight: '1px solid var(--color-border-light)',
     overflowY: 'auto',
     flexShrink: 0,
     backgroundColor: 'var(--color-bg-secondary)',
+  },
+  threadListMobile: {
+    width: '100%',
+    borderRight: 'none',
+  },
+  backBtn: {
+    width: '40px',
+    height: '40px',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'transparent',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    color: 'var(--color-text-primary)',
+    fontSize: '18px',
+    cursor: 'pointer',
   },
   noThreads: { padding: '24px', fontSize: '13px', color: 'var(--color-text-secondary)', textAlign: 'center' },
   threadItem: {

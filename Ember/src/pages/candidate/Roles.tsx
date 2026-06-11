@@ -5,6 +5,10 @@ import { useAuth } from '../../hooks/useAuth'
 import EmptyState from '../../components/EmptyState.tsx'
 import SkeletonCard from '../../components/SkeletonCard.tsx'
 import { RailLayout, RailCard } from '../../components/RailLayout'
+import { useIsMobile } from '../../hooks/useIsMobile'
+import { getCompletionPercent } from '../../lib/profileCompletion'
+
+const COMPLETION_DISMISS_KEY = 'ember.profileCompletionBannerDismissed'
 
 interface Role {
   id: string
@@ -76,6 +80,7 @@ function formatComp(min: number | null, max: number | null): string | null {
 export default function CandidateRoles() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [roles, setRoles] = useState<Role[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
@@ -84,6 +89,24 @@ export default function CandidateRoles() {
   const [taskTypeFilter, setTaskTypeFilter] = useState('all')
   const [aiFilter, setAiFilter] = useState('all') // all | allowed | not_allowed
   const [compFilter, setCompFilter] = useState('all') // 'all' | threshold string
+  // Banner dismissal lives in sessionStorage: hidden for the session, back next visit.
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () => sessionStorage.getItem(COMPLETION_DISMISS_KEY) === '1'
+  )
+
+  function dismissBanner() {
+    sessionStorage.setItem(COMPLETION_DISMISS_KEY, '1')
+    setBannerDismissed(true)
+  }
+
+  const completion = getCompletionPercent({
+    photo_url: (profile as any)?.photo_url,
+    bio: (profile as any)?.bio,
+    github_url: (profile as any)?.github_url,
+    skills: (profile as any)?.skills,
+    availability: (profile as any)?.availability,
+  })
+  const showCompletionBanner = !!profile && completion < 100 && !bannerDismissed
 
   useEffect(() => {
     async function load() {
@@ -235,6 +258,18 @@ export default function CandidateRoles() {
         </p>
       </div>
 
+      {showCompletionBanner && (
+        <div style={styles.completionBanner}>
+          <div style={styles.completionText}>
+            <strong>Your profile is {completion}% complete</strong> — recruiters see this when you apply.{' '}
+            <span onClick={() => navigate('/candidate/profile')} style={styles.warningLink}>
+              Finish your profile →
+            </span>
+          </div>
+          <button onClick={dismissBanner} style={styles.completionDismiss} aria-label="Dismiss">×</button>
+        </div>
+      )}
+
       {!isProfileComplete() && (
         <div style={styles.profileWarning}>
           <strong>Complete your profile first.</strong> Add a headline, bio, and at least one skill before starting an assessment.{' '}
@@ -312,9 +347,9 @@ export default function CandidateRoles() {
             const profileComplete = isProfileComplete()
 
             return (
-              <div key={role.id} style={styles.roleCard}>
+              <div key={role.id} style={{ ...styles.roleCard, ...(isMobile ? styles.roleCardMobile : {}) }}>
                 {/* Card header */}
-                <div style={styles.cardTop}>
+                <div style={{ ...styles.cardTop, ...(isMobile ? styles.cardTopMobile : {}) }}>
                   {(() => {
                     const company = role.profiles?.company_name ?? role.profiles?.full_name ?? 'Unknown company'
                     const logo = role.profiles?.company_logo_url
@@ -346,15 +381,16 @@ export default function CandidateRoles() {
 
                   {/* CTA button */}
                   {submitted ? (
-                    <div style={styles.submittedBadge}>Already submitted</div>
+                    <div style={{ ...styles.submittedBadge, ...(isMobile ? styles.ctaMobile : {}) }}>Already submitted</div>
                   ) : (
                     <button
                       onClick={() => handleStartAssessment(role.id)}
                       disabled={!profileComplete}
-                      style={profileComplete
-                        ? styles.startBtn
-                        : { ...styles.startBtn, ...styles.startBtnDisabled }
-                      }
+                      style={{
+                        ...styles.startBtn,
+                        ...(profileComplete ? {} : styles.startBtnDisabled),
+                        ...(isMobile ? styles.ctaMobile : {}),
+                      }}
                       title={!profileComplete ? 'Complete your profile first' : ''}
                     >
                       Start assessment →
@@ -457,6 +493,32 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-primary)',
     fontWeight: '600',
   },
+  completionBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    background: 'var(--color-primary-soft)',
+    border: '1px solid var(--color-primary-soft-border)',
+    borderRadius: 'var(--radius-md)',
+    padding: '12px 16px',
+    marginBottom: '16px',
+  },
+  completionText: {
+    fontSize: '13px',
+    color: 'var(--color-text-primary)',
+    lineHeight: '1.6',
+  },
+  completionDismiss: {
+    flexShrink: 0,
+    background: 'none',
+    border: 'none',
+    color: 'var(--color-text-secondary)',
+    fontSize: '20px',
+    lineHeight: 1,
+    cursor: 'pointer',
+    padding: '0 4px',
+  },
   filterBar: {
     display: 'flex',
     flexDirection: 'column',
@@ -531,6 +593,18 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'flex-start',
     gap: '20px',
     marginBottom: '16px',
+  },
+  cardTopMobile: {
+    flexWrap: 'wrap',
+    gap: '14px',
+  },
+  roleCardMobile: {
+    padding: '20px',
+  },
+  ctaMobile: {
+    width: '100%',
+    textAlign: 'center',
+    boxSizing: 'border-box',
   },
   cardMeta: { flex: 1 },
   companyAvatar: {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import EmptyState from '../../components/EmptyState'
 import SkeletonCard from '../../components/SkeletonCard'
 
@@ -45,6 +46,7 @@ function formatDate(dateStr: string) {
 export default function CandidateAssessments() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [assessments, setAssessments] = useState<MyAssessment[]>([])
   const [inProgress, setInProgress] = useState<InProgressAssessment[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,7 +130,7 @@ export default function CandidateAssessments() {
               const remaining = a.limitSeconds - (now - a.startedMs) / 1000
               const expired = remaining <= 0
               return (
-                <div key={a.id} style={styles.card}>
+                <div key={a.id} style={{ ...styles.card, ...(isMobile ? styles.cardMobile : {}) }}>
                   <div>
                     <p style={styles.roleTitle}>{a.role_title}</p>
                     <p style={{ ...styles.date, ...(expired ? styles.expiredText : {}) }}>
@@ -166,7 +168,7 @@ export default function CandidateAssessments() {
           {assessments.map(a => {
             const cfg = statusConfig[a.status]
             return (
-              <div key={a.id} style={styles.card}>
+              <div key={a.id} style={{ ...styles.card, ...(isMobile ? styles.cardMobile : {}) }}>
                 <div>
                   <p style={styles.roleTitle}>{a.role_title}</p>
                   <p style={styles.date}>Submitted {formatDate(a.submitted_at)}</p>
@@ -216,6 +218,11 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     transition: 'all var(--transition-base)',
     boxShadow: 'var(--shadow-md)',
+  },
+  cardMobile: {
+    flexWrap: 'wrap',
+    gap: '12px',
+    padding: '18px 20px',
   },
   roleTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 6px' },
   date: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 },

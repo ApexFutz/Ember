@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { getTemplateFiles, getTemplateLabel } from '../../lib/starterTemplates'
 import type { TestResult } from '../../lib/testHarness'
 import { LARGE_PASTE_THRESHOLD } from '../../lib/pasteDetection'
@@ -53,6 +54,7 @@ export default function Assessment() {
   const { roleId } = useParams<{ roleId: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const isMobile = useIsMobile()
 
   const [role, setRole] = useState<Role | null>(null)
   const [ruleset, setRuleset] = useState<Ruleset | null>(null)
@@ -505,6 +507,23 @@ useEffect(() => {
 
   const activeContent = files.find(f => f.name === activeFile)?.content ?? ''
   const hasVisibleTests = ruleset?.tests?.some(t => !t.hidden) ?? false
+
+  // The coding environment is desktop-only for now — show a graceful message
+  // on phones instead of a broken editor layout.
+  if (isMobile) return (
+    <div style={styles.centered}>
+      <div style={styles.doneCard}>
+        <h2 style={styles.doneTitle}>Please use a desktop browser</h2>
+        <p style={styles.doneSub}>
+          The coding assessment needs a larger screen and a keyboard. Open this
+          link on a laptop or desktop to take the assessment.
+        </p>
+        <button onClick={() => navigate('/candidate/roles')} style={styles.doneBtn}>
+          Back to roles
+        </button>
+      </div>
+    </div>
+  )
 
   if (loading) return (
     <div style={styles.centered}>Loading assessment...</div>

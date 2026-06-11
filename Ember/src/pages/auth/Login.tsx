@@ -167,6 +167,8 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'var(--color-bg-primary)',
     position: 'relative',
     overflow: 'hidden',
+    padding: '24px',
+    boxSizing: 'border-box',
   },
   accent: {
     position: 'absolute',
