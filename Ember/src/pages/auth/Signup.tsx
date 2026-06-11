@@ -1,15 +1,19 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { checkInviteCode, redeemInviteCode } from '../../lib/founding'
 import { toast, extractMessage } from '../../lib/toast'
 
 export default function Signup() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Role can be pre-selected from the landing page CTAs (?role=recruiter|candidate).
+  const roleParam = searchParams.get('role')
+  const initialRole: 'recruiter' | 'candidate' = roleParam === 'recruiter' ? 'recruiter' : 'candidate'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState<'recruiter' | 'candidate'>('candidate')
+  const [role, setRole] = useState<'recruiter' | 'candidate'>(initialRole)
   const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)

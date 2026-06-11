@@ -9,6 +9,7 @@ import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
+import Landing from './pages/Landing'
 import PublicProfile from './pages/PublicProfile'
 import Admin from './pages/Admin'
 import CandidateProfile from './pages/candidate/Profile'
@@ -42,6 +43,19 @@ function ProtectedRoute({ children, requiredRole }: {
   }
 
   return <>{children}</>
+}
+
+// Root route: logged-out visitors see the marketing landing page; authenticated
+// users are sent straight to their role's dashboard.
+function RootRoute() {
+  const { user, profile, loading } = useAuth()
+
+  if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>
+  if (user) {
+    const dest = profile?.role === 'recruiter' ? '/recruiter/dashboard' : '/candidate/dashboard'
+    return <Navigate to={dest} replace />
+  }
+  return <Landing />
 }
 
 function AppRoutes() {
@@ -113,8 +127,8 @@ function AppRoutes() {
         <Route path="profile" element={<CandidateProfile />} />
       </Route>
 
-      {/* Default */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Root — marketing landing page (or dashboard redirect when authed) */}
+      <Route path="/" element={<RootRoute />} />
     </Routes>
   )
 }
