@@ -24,6 +24,7 @@ interface RulesetForm {
   task_type: TaskType
   task_description: string
   time_limit_mins: TimeLimit
+  estimated_duration_minutes: number | null
   ai_allowed: boolean
   starter_template: StarterTemplate
   runtime: Runtime
@@ -67,6 +68,7 @@ export default function Ruleset() {
     task_type: 'build_a_feature',
     task_description: '',
     time_limit_mins: 60,
+    estimated_duration_minutes: null,
     ai_allowed: false,
     starter_template: 'blank',
     runtime: 'node',
@@ -133,6 +135,7 @@ export default function Ruleset() {
           task_type: rulesetData.task_type ?? 'build_a_feature',
           task_description: rulesetData.task_description ?? '',
           time_limit_mins: rulesetData.time_limit_mins ?? 60,
+          estimated_duration_minutes: rulesetData.estimated_duration_minutes ?? null,
           ai_allowed: rulesetData.ai_allowed ?? false,
           starter_template: rulesetData.starter_template ?? 'blank',
           runtime: rulesetData.runtime ?? 'node',
@@ -203,6 +206,7 @@ export default function Ruleset() {
         task_description: form.task_description,
         time_limit_mins: form.time_limit_mins,
         time_limit_seconds: form.time_limit_mins * 60,
+        estimated_duration_minutes: form.estimated_duration_minutes,
         ai_allowed: form.ai_allowed,
         starter_template: form.starter_template,
         runtime: form.runtime,
@@ -282,6 +286,24 @@ export default function Ruleset() {
                 </button>
               ))}
             </div>
+
+            <p style={{ ...styles.cardLabel, marginTop: '20px' }}>Estimated duration</p>
+            <p style={styles.cardHint}>
+              Optional. Roughly how long you expect this to take — shown to candidates so they can
+              plan. Leave blank to hide.
+            </p>
+            <input
+              type="number"
+              min={1}
+              placeholder="e.g. 45"
+              value={form.estimated_duration_minutes ?? ''}
+              onChange={e => setForm(prev => ({
+                ...prev,
+                estimated_duration_minutes: e.target.value === '' ? null : Math.max(1, parseInt(e.target.value, 10) || 0) || null,
+              }))}
+              style={styles.estDurationInput}
+            />
+            <span style={styles.estDurationSuffix}>minutes</span>
           </div>
 
           {/* Starter codebase */}
@@ -631,6 +653,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'var(--text-base)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-tertiary)',
     outline: 'none', width: '100%', boxSizing: 'border-box',
   },
+  estDurationInput: {
+    padding: '10px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-base)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-tertiary)',
+    outline: 'none', width: '120px', boxSizing: 'border-box',
+  },
+  estDurationSuffix: { marginLeft: '10px', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' },
   addBtn: {
     padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)',
     border: 'none', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer', flexShrink: 0,

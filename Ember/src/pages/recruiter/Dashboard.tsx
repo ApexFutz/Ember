@@ -41,14 +41,22 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'passed', label: 'Rejected' },
 ]
 
-type SortKey = 'submitted_at' | 'candidate_name' | 'duration' | 'paste_count' | 'focus_loss'
+type SortKey = 'submitted_at' | 'candidate_name' | 'duration' | 'paste_count' | 'focus_loss' | 'availability'
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'submitted_at', label: 'Submitted' },
   { key: 'candidate_name', label: 'Candidate' },
+  { key: 'availability', label: 'Availability' },
   { key: 'duration', label: 'Completion time' },
   { key: 'paste_count', label: 'Paste events' },
   { key: 'focus_loss', label: 'Focus losses' },
 ]
+
+// Sort rank for availability — "Available now" first, unknown last.
+const availabilityRank: Record<string, number> = {
+  available: 0,
+  open: 1,
+  not_looking: 2,
+}
 
 // Above this count we'd switch to server-side pagination (see loadSubmissionsPage).
 const CLIENT_SORT_LIMIT = 200
@@ -87,12 +95,19 @@ const statusOptions: { value: SubmissionStatus; label: string; color: string; bg
 
 const availabilityColors: Record<string, string> = {
   available: 'var(--color-success-text)',
-  open: 'var(--color-primary-light)',
+  open: 'var(--color-warning-text, #92400e)',
   not_looking: 'var(--color-text-secondary)',
 }
 
+// Dot colors mirror the label colors but use the stronger base hues.
+const availabilityDotColors: Record<string, string> = {
+  available: 'var(--color-success, #16a34a)',
+  open: 'var(--color-warning, #f59e0b)',
+  not_looking: 'var(--color-text-tertiary)',
+}
+
 const availabilityLabels: Record<string, string> = {
-  available: 'Available',
+  available: 'Available now',
   open: 'Open to offers',
   not_looking: 'Not looking',
 }
@@ -131,7 +146,7 @@ export default function RecruiterDashboard() {
   function toggleSort(key: SortKey) {
     setFilters(prev => prev.sortKey === key
       ? { ...prev, sortDir: prev.sortDir === 'asc' ? 'desc' : 'asc' }
-      : { ...prev, sortKey: key, sortDir: key === 'candidate_name' ? 'asc' : 'desc' })
+      : { ...prev, sortKey: key, sortDir: (key === 'candidate_name' || key === 'availability') ? 'asc' : 'desc' })
   }
 
   // Server-side pagination stub — wired in once a recruiter exceeds
@@ -344,6 +359,8 @@ export default function RecruiterDashboard() {
     switch (filters.sortKey) {
       case 'candidate_name':
         return dir * (a.candidate_name ?? '').localeCompare(b.candidate_name ?? '')
+      case 'availability':
+        return dir * ((availabilityRank[a.availability ?? ''] ?? 99) - (availabilityRank[b.availability ?? ''] ?? 99))
       case 'duration':
         return dir * ((a.duration_s ?? Infinity) - (b.duration_s ?? Infinity))
       case 'paste_count':
@@ -610,11 +627,15 @@ export default function RecruiterDashboard() {
 
                     {/* Right side */}
                     <div style={styles.subRight}>
-                      {sub.availability && (
+                      {sub.availability && availabilityLabels[sub.availability] && (
                         <span style={{
                           ...styles.availBadge,
                           color: availabilityColors[sub.availability],
                         }}>
+                          <span style={{
+                            ...styles.availDot,
+                            backgroundColor: availabilityDotColors[sub.availability],
+                          }} />
                           {availabilityLabels[sub.availability]}
                         </span>
                       )}
@@ -937,7 +958,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   noSkills: { fontSize: '11px', color: 'var(--color-text-tertiary)', fontStyle: 'italic' },
   subRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' },
-  availBadge: { fontSize: '12px', fontWeight: '600' },
+  availBadge: { fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px' },
+  availDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   subDate: { fontSize: '12px', color: 'var(--color-text-secondary)' },
   subBottom: {
     display: 'flex',

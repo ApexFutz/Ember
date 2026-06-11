@@ -18,12 +18,14 @@ interface Role {
   profiles: {
     company_name: string | null
     full_name: string | null
+    company_logo_url: string | null
   }
   rulesets: {
     stack_tags: string[]
     task_type: string
     time_limit_mins: number
     ai_allowed: boolean
+    estimated_duration_minutes: number | null
   } | null
 }
 
@@ -31,10 +33,25 @@ interface Submission {
   role_id: string
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric'
-  })
+// "Posted X days ago" style relative timestamp from a post date.
+function formatRelative(dateStr: string) {
+  const then = new Date(dateStr).getTime()
+  const days = Math.floor((Date.now() - then) / 86_400_000)
+  if (days <= 0) return 'Posted today'
+  if (days === 1) return 'Posted 1 day ago'
+  if (days < 7) return `Posted ${days} days ago`
+  if (days < 14) return 'Posted 1 week ago'
+  if (days < 30) return `Posted ${Math.floor(days / 7)} weeks ago`
+  if (days < 60) return 'Posted 1 month ago'
+  return `Posted ${Math.floor(days / 30)} months ago`
+}
+
+// Up to two initials from the company (or recruiter) name for the fallback avatar.
+function companyInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
 function formatTaskType(taskType: string) {
@@ -84,13 +101,15 @@ export default function CandidateRoles() {
           created_at,
           profiles (
             company_name,
-            full_name
+            full_name,
+            company_logo_url
           ),
           rulesets (
             stack_tags,
             task_type,
             time_limit_mins,
-            ai_allowed
+            ai_allowed,
+            estimated_duration_minutes
           )
         `)
         .eq('status', 'active')
@@ -296,6 +315,18 @@ export default function CandidateRoles() {
               <div key={role.id} style={styles.roleCard}>
                 {/* Card header */}
                 <div style={styles.cardTop}>
+                  {(() => {
+                    const company = role.profiles?.company_name ?? role.profiles?.full_name ?? 'Unknown company'
+                    const logo = role.profiles?.company_logo_url
+                    return (
+                  <div style={styles.companyAvatar} title={company}>
+                    {logo
+                      ? <img src={logo} alt="" style={styles.companyAvatarImg} />
+                      : <span style={styles.companyAvatarInitials}>{companyInitials(company)}</span>
+                    }
+                  </div>
+                    )
+                  })()}
                   <div style={styles.cardMeta}>
                     <h2 style={styles.roleTitle}>{role.title}</h2>
                     <p style={styles.roleMeta}>
@@ -303,8 +334,8 @@ export default function CandidateRoles() {
                       {' · '}
                       <span style={styles.locationBadge}>{role.location}</span>
                       {role.department && ` · ${role.department}`}
-                      {' · Posted '}
-                      {formatDate(role.created_at)}
+                      {' · '}
+                      {formatRelative(role.created_at)}
                     </p>
                     {formatComp(role.salary_min, role.salary_max) && (
                       <span style={styles.compBadge}>
@@ -367,6 +398,16 @@ export default function CandidateRoles() {
                         {role.rulesets.time_limit_mins} minutes
                       </span>
                     </div>
+
+                    {/* Estimated duration (recruiter's expectation, if set) */}
+                    {role.rulesets.estimated_duration_minutes != null && (
+                      <div style={styles.rulesetSection}>
+                        <span style={styles.rulesetLabel}>Est. duration</span>
+                        <span style={styles.rulesetValue}>
+                          ~{role.rulesets.estimated_duration_minutes} min
+                        </span>
+                      </div>
+                    )}
 
                     {/* AI policy */}
                     <div style={styles.rulesetSection}>
@@ -492,6 +533,19 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '16px',
   },
   cardMeta: { flex: 1 },
+  companyAvatar: {
+    width: '44px',
+    height: '44px',
+    borderRadius: 'var(--radius-md)',
+    background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  companyAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
+  companyAvatarInitials: { fontSize: '15px', fontWeight: '700', color: 'var(--color-on-primary)', fontFamily: 'var(--font-display)' },
   roleTitle: { fontSize: '18px', fontWeight: '600', color: 'var(--color-text-primary)', margin: '0 0 8px', fontFamily: 'var(--font-display)' },
   roleMeta: { fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.5' },
   locationBadge: { color: 'var(--color-text-primary)' },

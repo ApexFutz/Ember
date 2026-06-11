@@ -22,6 +22,8 @@ export default function RecruiterProfile() {
   })
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +40,9 @@ export default function RecruiterProfile() {
     if ((profile as any).photo_url) {
       setPhotoPreview((profile as any).photo_url)
     }
+    if ((profile as any).company_logo_url) {
+      setLogoPreview((profile as any).company_logo_url)
+    }
   }, [profile])
 
   function handleChange(field: keyof ProfileForm, value: string) {
@@ -49,6 +54,13 @@ export default function RecruiterProfile() {
     if (!file) return
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(file))
   }
 
   async function handleSave() {
@@ -75,6 +87,23 @@ export default function RecruiterProfile() {
         photo_url = urlData.publicUrl
       }
 
+      let company_logo_url = (profile as any)?.company_logo_url ?? null
+
+      if (logoFile) {
+        const filePath = `${user.id}/company-logo.jpg`
+        const { error: uploadError } = await supabase.storage
+          .from('profile-photos')
+          .upload(filePath, logoFile, { upsert: true })
+
+        if (uploadError) throw uploadError
+
+        const { data: urlData } = supabase.storage
+          .from('profile-photos')
+          .getPublicUrl(filePath)
+
+        company_logo_url = urlData.publicUrl
+      }
+
       const { error: saveError } = await supabase
         .from('profiles')
         .update({
@@ -84,6 +113,7 @@ export default function RecruiterProfile() {
           bio: form.bio,
           recruiter_linkedin_url: form.recruiter_linkedin_url,
           photo_url,
+          company_logo_url,
         })
         .eq('id', user.id)
 
@@ -147,7 +177,30 @@ export default function RecruiterProfile() {
           <div style={styles.card}>
             <p style={styles.cardLabel}>Company</p>
 
-            <div style={styles.field}>
+            <div style={styles.photoRow}>
+              <div style={styles.logoSquare}>
+                {logoPreview
+                  ? <img src={logoPreview} alt="company logo" style={styles.photoImg} />
+                  : <span style={styles.photoInitial}>
+                      {form.company_name?.charAt(0).toUpperCase() ?? '?'}
+                    </span>
+                }
+              </div>
+              <div>
+                <label style={styles.uploadBtn}>
+                  Choose logo
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleLogoChange}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <p style={styles.uploadHint}>Shown on your role cards. Falls back to initials.</p>
+              </div>
+            </div>
+
+            <div style={{ ...styles.field, marginTop: '20px' }}>
               <label style={styles.label}>Company name</label>
               <input
                 type="text"
@@ -314,6 +367,18 @@ const styles: Record<string, React.CSSProperties> = {
     width: '72px',
     height: '72px',
     borderRadius: '50%',
+    background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+    boxShadow: 'var(--shadow-md)',
+  },
+  logoSquare: {
+    width: '72px',
+    height: '72px',
+    borderRadius: 'var(--radius-md)',
     background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
     display: 'flex',
     alignItems: 'center',
