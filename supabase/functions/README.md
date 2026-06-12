@@ -48,3 +48,50 @@ are not yet executable. For production load, self-host Piston instead of the pub
 `emkc.org` endpoint (rate limits).
 
 > `harness.ts` here is a copy of `Ember/src/lib/testHarness.ts`. Keep them in sync.
+
+## stripe-billing-webhook
+
+Receives Stripe Billing events for recruiter subscriptions and per-hire charges.
+It verifies the `stripe-signature` header against the raw request body, records
+Stripe event IDs in `stripe_webhook_events`, updates recruiter subscription
+fields on `profiles`, and records `payment_intent.succeeded` events with
+`metadata.kind = per_hire` in `hire_events`.
+
+### Deploy
+
+```bash
+supabase functions deploy stripe-billing-webhook
+supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase. The
+function expects Stripe metadata on Checkout Sessions / Payment Intents:
+
+```jsonc
+{
+  "recruiter_id": "auth user uuid",
+  "subscription_tier": "founding | starter | growth | enterprise",
+  "kind": "per_hire",
+  "submission_id": "submission uuid"
+}
+```
+
+### Stripe events
+
+- `checkout.session.completed` updates the recruiter profile with
+  `stripe_customer_id`, `stripe_subscription_id`, `subscription_status`, and
+  `subscription_tier`.
+- `customer.subscription.updated` and `customer.subscription.deleted` keep
+  `subscription_status` and `subscription_current_period_end` in sync.
+- `payment_intent.succeeded` with `metadata.kind = per_hire` inserts or updates
+  one `hire_events` row keyed by `stripe_payment_intent_id`.
+
+### Local smoke test
+
+```bash
+stripe listen --forward-to "$SUPABASE_URL/functions/v1/stripe-billing-webhook"
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.updated
+```
+
+Use real Checkout Session metadata for an end-to-end recruiter profile update.

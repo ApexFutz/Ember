@@ -21,6 +21,19 @@ interface Profile {
   has_seen_welcome?: boolean
   email_notifications?: boolean
   onboarding_dismissed?: boolean
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  subscription_status?:
+    | 'inactive'
+    | 'trialing'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'unpaid'
+  subscription_tier?: 'free' | 'founding' | 'starter' | 'growth' | 'enterprise'
+  subscription_current_period_end?: string | null
 }
 
 interface AuthState {
