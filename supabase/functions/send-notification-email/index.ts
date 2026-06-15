@@ -181,6 +181,62 @@ async function handleStatusUpdated(submissionId: string) {
     body: `There's an update on your application for <strong>${roleTitle}</strong>. Sign in to see the latest status.`,
     linkUrl: `${APP_URL}/candidate/assessments`, linkLabel: 'View my assessments', event: 'status_changed',
   }))
+
+  // Reviewers who scored this submission are notified when the owner acts on it.
+  const { data: reviews } = await supabase
+    .from('reviews').select('reviewer_id').eq('submission_id', submissionId)
+  for (const r of reviews ?? []) {
+    await notifyUser(r.reviewer_id, () => ({
+      subject: `Decision update — ${roleTitle}`,
+      heading: 'A submission you reviewed was updated',
+      body: `The role owner updated the status of a submission you reviewed for <strong>${roleTitle}</strong>.`,
+      linkUrl: `${APP_URL}/recruiter/submissions/${submissionId}/replay`,
+      linkLabel: 'View submission', event: 'review_status_changed',
+    }))
+  }
+}
+
+// A reviewer was invited → ask them to review.
+async function handleReviewRequested(reviewId: string) {
+  const { data: rv } = await supabase
+    .from('reviews').select('reviewer_id, submission_id').eq('id', reviewId).maybeSingle()
+  if (!rv) return
+  const { data: sub } = await supabase
+    .from('submissions').select('role_id, candidate_id').eq('id', rv.submission_id).maybeSingle()
+  if (!sub) return
+  const [{ data: role }, candidate] = await Promise.all([
+    supabase.from('roles').select('title').eq('id', sub.role_id).maybeSingle(),
+    getProfile(sub.candidate_id),
+  ])
+  const roleTitle = role?.title ?? 'a role'
+  const candidateName = candidate.full_name ?? 'a candidate'
+  await notifyUser(rv.reviewer_id, () => ({
+    subject: `Review requested: ${candidateName} — ${roleTitle}`,
+    heading: "You've been asked to review a submission",
+    body: `You've been invited to review <strong>${candidateName}</strong>'s submission for <strong>${roleTitle}</strong>. Watch the replay, leave timestamped notes, and submit your verdict.`,
+    linkUrl: `${APP_URL}/recruiter/submissions/${rv.submission_id}/replay`,
+    linkLabel: 'Start your review', event: 'review_requested',
+  }))
+}
+
+// Every reviewer has submitted → tell the role owner the panel is done.
+async function handleReviewsComplete(submissionId: string) {
+  const { data: sub } = await supabase
+    .from('submissions').select('role_id, candidate_id').eq('id', submissionId).maybeSingle()
+  if (!sub) return
+  const [{ data: role }, candidate] = await Promise.all([
+    supabase.from('roles').select('title, recruiter_id').eq('id', sub.role_id).maybeSingle(),
+    getProfile(sub.candidate_id),
+  ])
+  if (!role) return
+  const candidateName = candidate.full_name ?? 'the candidate'
+  await notifyUser(role.recruiter_id, () => ({
+    subject: `All reviews are in — ${candidateName}`,
+    heading: 'Your review panel has finished',
+    body: `Every reviewer has submitted their verdict for <strong>${candidateName}</strong> on <strong>${role.title ?? 'a role'}</strong>. See the aggregate decision and make the final call.`,
+    linkUrl: `${APP_URL}/recruiter/submissions/${submissionId}/replay`,
+    linkLabel: 'View the decision', event: 'reviews_complete',
+  }))
 }
 
 async function handleMessageCreated(messageId: string) {
@@ -253,6 +309,8 @@ Deno.serve(async (req) => {
       case 'submission_created': await handleSubmissionCreated(payload.submission_id); break
       case 'status_updated':     await handleStatusUpdated(payload.submission_id); break
       case 'message_created':    await handleMessageCreated(payload.message_id); break
+      case 'review_requested':   await handleReviewRequested(payload.review_id); break
+      case 'reviews_complete':   await handleReviewsComplete(payload.submission_id); break
       default: return json({ error: `unknown type: ${payload.type}` }, 400)
     }
   } catch (e) {

@@ -3,7 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { supabase } from '../../lib/supabase'
 import { useDemo } from '../../hooks/useDemo'
+import { useAuth } from '../../hooks/useAuth'
 import { extractPasteEvents, extractFocusEvents, formatElapsed } from '../../lib/pasteDetection'
+import { toast, extractMessage } from '../../lib/toast'
+import { msToStep, stepToMs, type Review, type Annotation, type Verdict } from '../../lib/review'
+import ReviewerPanel from '../../components/review/ReviewerPanel'
+import OwnerReviewPanel from '../../components/review/OwnerReviewPanel'
 
 interface LogEntry {
   timestamp: number
@@ -67,6 +72,7 @@ export default function Replay() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isDemo, guard } = useDemo()
+  const { user } = useAuth()
 
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null)
   const [score, setScore] = useState<Score | null>(null)
@@ -85,97 +91,98 @@ export default function Replay() {
   const [statusEvents, setStatusEvents] = useState<StatusEvent[]>([])
   const [skills, setSkills] = useState<string[]>([])
 
+  // Collaborative review
+  const [mode, setMode] = useState<'owner' | 'reviewer' | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [ownReview, setOwnReview] = useState<Review | null>(null)
+  const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const [annFilter, setAnnFilter] = useState<string>('all') // 'all' | reviewer_id (owner)
+  const [inviting, setInviting] = useState(false)
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [settingStatus, setSettingStatus] = useState(false)
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [composerMs, setComposerMs] = useState(0)
+  const [composerBody, setComposerBody] = useState('')
+  const [savingAnn, setSavingAnn] = useState(false)
+
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !user) return
     async function load() {
-      // Load submission details
-      const { data: subData } = await supabase
-        .from('submission_details')
-        .select('candidate_name, candidate_headline, candidate_id, role_title, assessment_id, recruiter_notes')
-        .eq('id', id)
-        .single()
+      const me = user!.id
 
-      if (subData) {
-        setSubmission(subData)
+      // Replay context resolves for the role owner AND invited reviewers
+      // (SECURITY DEFINER RPC, so reviewers don't depend on the owner-only view).
+      const { data: ctx, error: ctxErr } = await supabase.rpc('get_review_context', { p_submission_id: id })
+      if (ctxErr || !ctx) { setLoading(false); return }
+      setSubmission({
+        candidate_name: ctx.candidate_name, candidate_headline: ctx.candidate_headline,
+        candidate_id: ctx.candidate_id, role_title: ctx.role_title,
+        assessment_id: ctx.assessment_id, recruiter_notes: null,
+      })
+      if (Array.isArray(ctx.candidate_skills)) setSkills(ctx.candidate_skills)
+      const assessmentId = ctx.assessment_id as string
 
-        // Private notes live in their own recruiter-only table.
+      // Owner vs reviewer: get_submission_reviews succeeds only for the owner.
+      const ownerRes = await supabase.rpc('get_submission_reviews', { p_submission_id: id })
+      const owner = !ownerRes.error
+      setMode(owner ? 'owner' : 'reviewer')
+      if (owner) {
+        setReviews((ownerRes.data ?? []) as Review[])
+      } else {
+        const { data: mine } = await supabase
+          .from('reviews').select('*')
+          .eq('submission_id', id).eq('reviewer_id', me).maybeSingle()
+        if (mine) setOwnReview({ ...(mine as any), full_name: 'You' })
+      }
+
+      // Annotations — RLS returns all for the owner, own-only for a reviewer.
+      const { data: anns } = await supabase
+        .from('replay_annotations').select('*')
+        .eq('submission_id', id).order('replay_timestamp_ms', { ascending: true })
+      setAnnotations((anns ?? []) as Annotation[])
+
+      // Owner-only extras (private notes, status history, replay_viewed flag).
+      if (owner) {
         const { data: noteRow } = await supabase
-          .from('submission_notes')
-          .select('body')
-          .eq('submission_id', id)
-          .maybeSingle()
+          .from('submission_notes').select('body').eq('submission_id', id).maybeSingle()
         setNotes(noteRow?.body ?? '')
-
-        // Candidate skills for at-a-glance tech stack.
-        if (subData.candidate_id) {
-          const { data: prof } = await supabase
-            .from('profiles')
-            .select('skills')
-            .eq('id', subData.candidate_id)
-            .maybeSingle()
-          if (Array.isArray(prof?.skills)) setSkills(prof!.skills)
-        }
-
-        // Mark this submission's replay as viewed (unlocks status changes on the
-        // dashboard). Skipped in demo (read-only; server would block it anyway).
-        if (!isDemo) {
-          await supabase
-            .from('submissions')
-            .update({ replay_viewed: true })
-            .eq('id', id)
-        }
-
-        // Load scoring + metrics for this submission
-        const { data: scoreData } = await supabase
-          .from('submissions')
-          .select('score, tests_passed, tests_total, metrics')
-          .eq('id', id)
-          .single()
-        if (scoreData) setScore(scoreData)
-
-        // Status history timeline (chronological).
         const { data: events } = await supabase
-          .from('status_events')
-          .select('id, from_status, to_status, changed_at')
-          .eq('submission_id', id)
-          .order('changed_at', { ascending: true })
+          .from('status_events').select('id, from_status, to_status, changed_at')
+          .eq('submission_id', id).order('changed_at', { ascending: true })
         if (events) setStatusEvents(events)
-
-        // Load the assessment logs
-        const { data: logData } = await supabase
-          .from('assessment_logs')
-          .select('log')
-          .eq('assessment_id', subData.assessment_id)
-          .single()
-
-        if (logData?.log) {
-          setLogs(logData.log)
+        if (!isDemo) {
+          await supabase.from('submissions').update({ replay_viewed: true }).eq('id', id)
         }
+      }
 
-        // Load final files
-        const { data: assessmentData } = await supabase
-          .from('assessments')
-          .select('files, auto_submitted')
-          .eq('id', subData.assessment_id)
-          .single()
+      // Scoring + metrics (owner via owner RLS, reviewer via reviewer-read RLS).
+      const { data: scoreData } = await supabase
+        .from('submissions').select('score, tests_passed, tests_total, metrics').eq('id', id).single()
+      if (scoreData) setScore(scoreData)
 
-        if (assessmentData?.auto_submitted) setAutoSubmitted(true)
-        if (assessmentData?.files) {
-          setFinalFiles(assessmentData.files)
-          if (assessmentData.files.length > 0) {
-            setDisplayContent(assessmentData.files[0].content)
-            setActiveReplayFile(assessmentData.files[0].name)
-          }
+      // Replay logs + final files.
+      const { data: logData } = await supabase
+        .from('assessment_logs').select('log').eq('assessment_id', assessmentId).single()
+      if (logData?.log) setLogs(logData.log)
+
+      const { data: assessmentData } = await supabase
+        .from('assessments').select('files, auto_submitted').eq('id', assessmentId).single()
+      if (assessmentData?.auto_submitted) setAutoSubmitted(true)
+      if (assessmentData?.files) {
+        setFinalFiles(assessmentData.files)
+        if (assessmentData.files.length > 0) {
+          setDisplayContent(assessmentData.files[0].content)
+          setActiveReplayFile(assessmentData.files[0].name)
         }
       }
 
       setLoading(false)
     }
     load()
-  }, [id])
+  }, [id, user])
 
   // Reconstruct content up to a given step
   function reconstructAtStep(step: number) {
@@ -290,6 +297,78 @@ export default function Replay() {
     notesTimer.current = setTimeout(() => saveNotes(value), 500)
   }
 
+  // ── Collaborative review handlers ──
+  async function handleInvite(email: string) {
+    if (guard()) return
+    setInviting(true)
+    const { data, error } = await supabase.rpc('invite_reviewer', { p_submission_id: id, p_email: email })
+    if (error) {
+      toast.error('Could not invite reviewer', extractMessage(error))
+    } else if (data) {
+      setReviews(prev => [...prev, data as Review])
+      toast.success(`Invited ${(data as Review).full_name ?? email}`)
+    }
+    setInviting(false)
+  }
+
+  async function handleSubmitReview(verdict: Verdict, note: string) {
+    if (guard() || !ownReview) return
+    setSubmittingReview(true)
+    const submitted_at = new Date().toISOString()
+    const { error } = await supabase
+      .from('reviews')
+      .update({ verdict, private_note: note, status: 'submitted', submitted_at })
+      .eq('id', ownReview.id)
+    if (error) {
+      toast.error('Could not submit review', extractMessage(error))
+    } else {
+      setOwnReview({ ...ownReview, verdict, private_note: note, status: 'submitted', submitted_at })
+      toast.success('Review submitted')
+    }
+    setSubmittingReview(false)
+  }
+
+  async function handleSetStatus(status: 'moved_forward' | 'passed') {
+    if (guard()) return
+    setSettingStatus(true)
+    const { error } = await supabase.from('submissions').update({ status }).eq('id', id)
+    if (error) toast.error('Could not update status', extractMessage(error))
+    else toast.success(status === 'moved_forward' ? 'Candidate advanced' : 'Candidate declined')
+    setSettingStatus(false)
+  }
+
+  function openComposer() {
+    setPlaying(false)
+    setComposerMs(stepToMs(logs, currentStep))
+    setComposerBody('')
+    setComposerOpen(true)
+  }
+
+  async function saveAnnotation() {
+    if (guard() || !composerBody.trim() || !user) return
+    setSavingAnn(true)
+    const { data, error } = await supabase
+      .from('replay_annotations')
+      .insert({ submission_id: id, reviewer_id: user.id, replay_timestamp_ms: composerMs, body: composerBody.trim() })
+      .select('*').single()
+    if (error) {
+      toast.error('Could not add note', extractMessage(error))
+    } else if (data) {
+      setAnnotations(prev => [...prev, data as Annotation].sort((a, b) => a.replay_timestamp_ms - b.replay_timestamp_ms))
+      setComposerOpen(false)
+      setComposerBody('')
+    }
+    setSavingAnn(false)
+  }
+
+  function reviewerName(rid: string): string {
+    if (rid === user?.id) return 'You'
+    return reviews.find(r => r.reviewer_id === rid)?.full_name ?? 'Reviewer'
+  }
+
+  const canAnnotate = mode === 'owner' || (!!ownReview && ownReview.status !== 'submitted')
+  const visibleAnnotations = annotations.filter(a => annFilter === 'all' || a.reviewer_id === annFilter)
+
   // Large-paste events (potential external-code flags), with snippets + timing.
   const pasteEvents = extractPasteEvents(logs)
   const focusEvents = extractFocusEvents(logs)
@@ -329,7 +408,11 @@ export default function Replay() {
         )}
       </div>
 
-      {statusEvents.length > 0 && (
+      {mode === 'reviewer' && ownReview && (
+        <ReviewerPanel review={ownReview} submitting={submittingReview} onSubmit={handleSubmitReview} />
+      )}
+
+      {mode === 'owner' && statusEvents.length > 0 && (
         <div style={styles.timelineCard}>
           <p style={styles.timelineLabel}>Status history</p>
           <div style={styles.timeline}>
@@ -426,6 +509,18 @@ export default function Replay() {
                   title={`Left the tab at ${formatElapsed(ev.timestamp, startTs)}`}
                 />
               ))}
+              {/* Reviewer annotation flags */}
+              {visibleAnnotations.map(a => {
+                const step = msToStep(logs, a.replay_timestamp_ms)
+                return (
+                  <div
+                    key={a.id}
+                    onClick={() => handleScrub(step)}
+                    style={{ ...styles.annMarker, left: `${(step / logs.length) * 100}%` }}
+                    title={`${reviewerName(a.reviewer_id)}: ${a.body}`}
+                  />
+                )
+              })}
             </div>
 
             {/* Speed */}
@@ -447,7 +542,68 @@ export default function Replay() {
             <button onClick={showFinalCode} style={styles.finalBtn}>
               Final code
             </button>
+
+            {canAnnotate && (
+              <button onClick={openComposer} style={styles.noteBtn2}>
+                + Note
+              </button>
+            )}
           </div>
+
+          {/* Annotation composer (pinned to the paused moment) */}
+          {composerOpen && (
+            <div style={styles.composer}>
+              <span style={styles.composerTime}>
+                📍 Pinned at {formatElapsed(composerMs, startTs)}
+              </span>
+              <textarea
+                value={composerBody}
+                onChange={e => setComposerBody(e.target.value)}
+                placeholder="Comment on this moment…"
+                style={styles.composerArea}
+                rows={2}
+                autoFocus
+              />
+              <div style={styles.composerActions}>
+                <button onClick={() => setComposerOpen(false)} style={styles.composerCancel}>Cancel</button>
+                <button
+                  onClick={saveAnnotation}
+                  disabled={savingAnn || !composerBody.trim()}
+                  style={{ ...styles.composerSave, ...(savingAnn || !composerBody.trim() ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                >
+                  {savingAnn ? 'Saving…' : 'Add note'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Annotations list */}
+          {annotations.length > 0 && (
+            <div style={styles.annPanel}>
+              <div style={styles.annHead}>
+                <span style={styles.annTitle}>Reviewer notes</span>
+                {mode === 'owner' && reviews.length > 0 && (
+                  <select value={annFilter} onChange={e => setAnnFilter(e.target.value)} style={styles.annFilter}>
+                    <option value="all">All reviewers</option>
+                    {reviews.map(r => (
+                      <option key={r.reviewer_id} value={r.reviewer_id}>{r.full_name ?? r.email}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div style={styles.annList}>
+                {visibleAnnotations.map(a => (
+                  <button key={a.id} onClick={() => handleScrub(msToStep(logs, a.replay_timestamp_ms))} style={styles.annItem}>
+                    <div style={styles.annItemTop}>
+                      <span style={styles.annItemTime}>⏱ {formatElapsed(a.replay_timestamp_ms, startTs)}</span>
+                      <span style={styles.annItemName}>{reviewerName(a.reviewer_id)}</span>
+                    </div>
+                    <span style={styles.annItemBody}>{a.body}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Paste Events panel */}
           {pasteEvents.length > 0 && (
@@ -510,6 +666,17 @@ export default function Replay() {
             </div>
           )}
 
+          {/* Owner-only collaborative review panel */}
+          {mode === 'owner' && (
+            <OwnerReviewPanel
+              reviews={reviews}
+              inviting={inviting}
+              onInvite={handleInvite}
+              settingStatus={settingStatus}
+              onSetStatus={handleSetStatus}
+            />
+          )}
+
           {/* Results summary */}
           {score && score.tests_total != null && score.tests_total > 0 && (
             <div style={styles.summaryCard}>
@@ -540,7 +707,8 @@ export default function Replay() {
             </div>
           )}
 
-          {/* Notes — autosave on blur, never shown to the candidate */}
+          {/* Notes — owner-only, autosave on blur, never shown to the candidate */}
+          {mode === 'owner' && (
           <div style={styles.notesCard}>
             <div style={styles.notesHeader}>
               <p style={styles.notesLabel}>Private notes</p>
@@ -557,6 +725,7 @@ export default function Replay() {
               rows={4}
             />
           </div>
+          )}
         </>
       )}
     </div>
@@ -642,6 +811,55 @@ const styles: Record<string, React.CSSProperties> = {
     width: '3px', height: '16px', backgroundColor: 'var(--color-warning, #f59e0b)',
     borderRadius: '1px', cursor: 'pointer', zIndex: 2,
   },
+  annMarker: {
+    position: 'absolute', top: '50%', transform: 'translateX(-50%) translateY(-50%)',
+    width: '10px', height: '10px', backgroundColor: 'var(--color-info, #3b82f6)',
+    border: '2px solid var(--color-bg-secondary)', borderRadius: '50%', cursor: 'pointer', zIndex: 3,
+  },
+  noteBtn2: {
+    padding: '8px 14px', border: '1px solid var(--color-info, #3b82f6)', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-info-soft)', fontSize: 'var(--text-xs)', color: 'var(--color-info-text)',
+    cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 'var(--weight-semibold)',
+  },
+  composer: {
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-info, #3b82f6)',
+    borderRadius: 'var(--radius-xl)', padding: '16px', marginBottom: '16px', boxShadow: 'var(--shadow-md)',
+  },
+  composerTime: { fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-info-text)', display: 'block', marginBottom: '10px', fontFamily: 'var(--font-mono)' },
+  composerArea: {
+    width: '100%', padding: '10px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-base)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-tertiary)',
+    boxSizing: 'border-box', resize: 'vertical', fontFamily: 'var(--font-primary)', outline: 'none', lineHeight: 1.6,
+  },
+  composerActions: { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' },
+  composerCancel: {
+    padding: '8px 14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    background: 'transparent', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer', fontWeight: 'var(--weight-medium)',
+  },
+  composerSave: {
+    padding: '8px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--color-primary)',
+    color: 'var(--color-on-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer',
+  },
+  annPanel: {
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-xl)', padding: '20px', marginBottom: '16px',
+  },
+  annHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' },
+  annTitle: { fontSize: 'var(--text-base)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' },
+  annFilter: {
+    padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-tertiary)', cursor: 'pointer', outline: 'none',
+  },
+  annList: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  annItem: {
+    display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
+    background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-light)',
+    borderLeft: '3px solid var(--color-info, #3b82f6)', borderRadius: 'var(--radius-md)', padding: '10px 12px',
+  },
+  annItemTop: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' },
+  annItemTime: { fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-info-text)', fontFamily: 'var(--font-mono)' },
+  annItemName: { fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 'var(--weight-medium)' },
+  annItemBody: { fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', lineHeight: 1.5 },
   speedControls: { display: 'flex', gap: '4px' },
   speedBtn: {
     padding: '7px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
