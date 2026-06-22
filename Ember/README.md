@@ -1,4 +1,31 @@
-# React + TypeScript + Vite
+# Ember
+
+Hire engineers on the strength of their work — real coding assessments with
+keystroke-level replay and collaborative panel review.
+
+## Quick start
+
+No backend setup required. The app ships with a shared, public Supabase project
+baked in, so you can clone and run it as-is:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the printed local URL. On the login page you can click **Try a Demo**
+to explore without an account, or sign up as a candidate or recruiter.
+
+### Using your own Supabase (optional)
+
+The bundled connection is browser-safe (the publishable/anon key is public and
+protected by row-level security). To point the app at your own Supabase project
+instead, copy `.env.example` to `.env` and set your own values — the migrations
+live in `../supabase/migrations`. Never commit a `service_role` key.
+
+---
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
