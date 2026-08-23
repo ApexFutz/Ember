@@ -106,6 +106,15 @@ export default function Billing() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
   const [confirmedTier, setConfirmedTier] = useState<string | null>(null)
   const isFounding = !!profile?.founding_recruiter
+  const subscriptionStatus = profile?.subscription_status ?? 'inactive'
+  const subscriptionTier = profile?.subscription_tier ?? (isFounding ? 'founding' : 'free')
+  const subscriptionPeriodEnd = profile?.subscription_current_period_end
+    ? new Date(profile.subscription_current_period_end).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null
 
   // Track unique-ish pricing page views for the demand-signal funnel.
   useEffect(() => {
@@ -152,6 +161,21 @@ export default function Billing() {
             ✓ Thanks for your interest in <strong>{confirmedTier}</strong> — we'll be in touch within 24 hours.
           </div>
         )}
+
+        <div style={styles.billingStatus}>
+          <div>
+            <p style={styles.statusLabel}>Current billing status</p>
+            <p style={styles.statusValue}>
+              {subscriptionTier} · {subscriptionStatus.replaceAll('_', ' ')}
+            </p>
+          </div>
+          {subscriptionPeriodEnd && (
+            <div style={styles.statusMeta}>
+              <span style={styles.statusLabel}>Renews</span>
+              <strong>{subscriptionPeriodEnd}</strong>
+            </div>
+          )}
+        </div>
 
         {/* Header */}
         <div style={styles.header}>
@@ -324,6 +348,15 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--color-success-soft)', border: '1px solid var(--color-success)',
     color: 'var(--color-success-text)', fontSize: '14px', textAlign: 'center',
   },
+  billingStatus: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '18px',
+    maxWidth: '760px', margin: '0 auto 28px', padding: '16px 20px', borderRadius: 'var(--radius-lg)',
+    background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)',
+    boxShadow: 'var(--shadow-sm)',
+  },
+  statusLabel: { margin: 0, color: 'var(--color-text-tertiary)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 },
+  statusValue: { margin: '6px 0 0', color: 'var(--color-text-primary)', fontSize: '18px', fontWeight: 700, textTransform: 'capitalize' },
+  statusMeta: { display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end', color: 'var(--color-text-primary)', fontSize: '14px' },
   header: { textAlign: 'center', maxWidth: '760px', margin: '0 auto 48px' },
   eyebrow: { display: 'inline-block', marginBottom: '16px', padding: '6px 14px', borderRadius: '999px', background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-soft-border)', color: ORANGE, fontSize: '12px', fontWeight: 600, letterSpacing: '0.08em' },
   h1: { fontSize: '44px', lineHeight: 1.1, fontWeight: 700, margin: '0 0 20px', fontFamily: 'var(--font-display)', background: GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' },
